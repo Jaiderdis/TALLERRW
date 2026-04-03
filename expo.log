@@ -1,0 +1,13 @@
+env: load .env
+env: export EXPO_PUBLIC_API_URL
+Starting project at C:\Users\jaide\OneDrive\Documentos\Proyectos\TallerRW
+Starting Metro Bundler
+
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+iOS .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS .\index.ts ▓▓▓▓▓▓▓░░░░░░░░░ 47.5% (342/496)
+iOS .\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.8% (972/973)
+iOS Bundled 7901ms index.ts (982 modules)
+iOS .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 45ms index.ts (1 module)

@@ -1,0 +1,39 @@
+# Build results
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# SQL Server
+*.mdf
+*.ldf
+
+# EF Core migrations (opcional si quieres ignorar snapshots)
+# Migrations/
+
+# Publish
+publish/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+
+# Node (por si tienes algo en frontend dentro)
+node_modules/
+
+# Expo / React Native
+.expo/
+dist/
