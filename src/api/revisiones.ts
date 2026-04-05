@@ -1,9 +1,9 @@
 import api from './config';
 import { ApiResponse, PlanRevision, FichaRevision } from '../types';
+import { AxiosResponse } from 'axios';
 
-export const obtenerRevisionesPorVehiculo = async (vehiculoId: number): Promise<ApiResponse<PlanRevision[]>> => {
-  const response = await api.get(`/revisiones/vehiculo/${vehiculoId}`);
-  return response.data;
+export const obtenerRevisionesPorVehiculo = async (vehiculoId: number): Promise<AxiosResponse<ApiResponse<PlanRevision[]>>> => {
+  return api.get(`/revisiones/vehiculo/${vehiculoId}`);
 };
 
 export const registrarFicha = async (data: {
@@ -17,7 +17,6 @@ export const registrarFicha = async (data: {
   gasCantidad?: number | null;
   notas: string;
   componentes: { componente: string; estado: string; observacion: string }[];
-}): Promise<ApiResponse<FichaRevision>> => {
-  const response = await api.post('/revisiones/ficha', data);
-  return response.data;
+}): Promise<AxiosResponse<ApiResponse<FichaRevision>>> => {
+  return api.post('/revisiones/ficha', data);
 };

@@ -13,6 +13,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { buscarPorPlaca } from '../api/vehiculos';
+import { llamarApi } from '../api/apiHelper';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'BuscarPlaca'>;
@@ -73,7 +74,7 @@ export default function BuscarPlacaScreen({ navigation }: Props) {
     setLoading(true);
 
     try {
-      const result = await buscarPorPlaca(placaNormalizada);
+      const result =  await llamarApi(() => buscarPorPlaca(placaNormalizada));
 
       if (result.success) {
         navigation.navigate('Vehiculo', { vehiculo: result.data });

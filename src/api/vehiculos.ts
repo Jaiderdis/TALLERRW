@@ -1,9 +1,9 @@
 import api from './config';
 import { ApiResponse, Vehiculo } from '../types';
+import { AxiosResponse } from 'axios';
 
-export const buscarPorPlaca = async (placa: string): Promise<ApiResponse<Vehiculo>> => {
-  const response = await api.get(`/vehiculos/${placa}`);
-  return response.data;
+export const buscarPorPlaca = async (placa: string): Promise<AxiosResponse<ApiResponse<Vehiculo>>> => {
+  return api.get(`/vehiculos/${placa}`);
 };
 
 export const crearVehiculo = async (data: {
@@ -14,7 +14,6 @@ export const crearVehiculo = async (data: {
   color: string;
   clienteId: number;
   empresaId?: number | null;
-}): Promise<ApiResponse<Vehiculo>> => {
-  const response = await api.post('/vehiculos', data);
-  return response.data;
+}): Promise<AxiosResponse<ApiResponse<Vehiculo>>> => {
+  return api.post('/vehiculos', data);
 };

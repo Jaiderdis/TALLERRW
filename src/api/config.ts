@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:35373/api/v1';
 
@@ -10,12 +10,14 @@ const api = axios.create({
   },
 });
 
-// Interceptor para ver errores detallados
 api.interceptors.response.use(
-  response => response,
-  error => {
-    console.log('API Error:', JSON.stringify(error.response?.data));
-    console.log('Status:', error.response?.status);
+  (response: AxiosResponse) => response,
+  (error) => {
+    if (error.response) {
+      // La API respondió con 4xx o 5xx — es un error controlado
+      return Promise.resolve(error.response);
+    }
+    // Sin respuesta — error de red real (sin internet, servidor caído)
     return Promise.reject(error);
   }
 );

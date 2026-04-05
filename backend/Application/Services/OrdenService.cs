@@ -104,6 +104,13 @@ public class OrdenService : IOrdenService
         return ApiResponse<List<OrdenResponse>>.Ok(response);
     }
 
+    public async Task<ApiResponse<List<OrdenResponse>>> ObtenerPendientesAsync()
+    {
+        var ordenes = await _ordenRepo.ObtenerPendientesAsync();
+        var response = ordenes.Select(MapearResponse).ToList();
+        return ApiResponse<List<OrdenResponse>>.Ok(response);
+    }
+
     public async Task<ApiResponse<OrdenResponse>> ActualizarEstadoAsync(int id, string estado)
     {
         var orden = await _ordenRepo.ObtenerPorIdAsync(id);

@@ -6,17 +6,20 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   ActivityIndicator,
   Alert,
   TextInputProps,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { actualizarCliente, buscarPorCedula, crearCliente } from '../api/clientes';
 import { obtenerEmpresas } from '../api/empresas';
-import { crearVehiculo } from '../api/vehiculos';
+import { buscarPorPlaca, crearVehiculo } from '../api/vehiculos';
 import { Empresa } from '../types';
 import {
   COMMON_COLORS,
@@ -24,6 +27,7 @@ import {
   HEAVY_BRANDS,
   MODELS_BY_BRAND,
 } from '../constants/vehicleCatalog';
+import { llamarApi } from '../api/apiHelper';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'NuevoVehiculo'>;
@@ -69,7 +73,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
       setCargandoEmpresas(true);
 
       try {
-        const response = await obtenerEmpresas();
+        const response = await llamarApi(() => obtenerEmpresas());
         if (response.success) {
           setEmpresas(response.data);
         }
@@ -107,15 +111,20 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   }, [marca, modelo]);
 
   const yearSuggestions = useMemo(() => getSuggestedYears(), []);
-
+  const EMAIL_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
   const clientFields = useMemo<FieldConfig[]>(
     () => [
       { label: 'Nombre completo *', value: nombre, setValue: setNombre, autoCapitalize: 'words' },
       { label: 'Telefono', value: telefono, setValue: setTelefono, keyboardType: 'phone-pad', autoCapitalize: 'none' },
-      { label: 'Email', value: email, setValue: setEmail, keyboardType: 'email-address', autoCapitalize: 'none' },
+      // { label: 'Email', value: email, setValue: setEmail, keyboardType: 'email-address', autoCapitalize: 'none' },
     ],
     [email, nombre, telefono]
   );
+
+  const emailSuggestions = useMemo(() => {
+    if (!email.trim() || email.includes('@')) return [];
+    return EMAIL_DOMAINS.map(domain => `${email.trim()}@${domain}`);
+  }, [email]);
 
   const limpiarClienteEncontrado = () => {
     setClienteId(null);
@@ -138,40 +147,33 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
 
   const buscarClienteExistente = async () => {
     const cedulaLimpia = cedula.trim();
-
     if (cedulaLimpia.length < 5) {
       Alert.alert('Error', 'Ingresa una cedula valida para buscar');
       return;
     }
-
     setEstadoCedula('buscando');
     setMensajeCedula('Buscando cliente...');
 
-    try {
-      const response = await buscarPorCedula(cedulaLimpia);
-      const cliente = response.data;
+    const response = await llamarApi(() => buscarPorCedula(cedulaLimpia));
 
-      setClienteId(cliente.id);
-      setNombre(cliente.nombre ?? '');
-      setTelefono(cliente.telefono ?? '');
-      setEmail(cliente.email ?? '');
-
-      if (cliente.empresa && tipoIngreso === 'empresa' && !empresaId) {
-        setEmpresaId(cliente.empresa.id);
-      }
-
-      setEstadoCedula('encontrado');
-      setMensajeCedula('Cliente encontrado. Revisa los datos y continua.');
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
-        setEstadoCedula('nuevo');
-        setMensajeCedula('Cedula no registrada. Completa el nombre del cliente o conductor.');
-        return;
-      }
-
-      setEstadoCedula('error');
-      setMensajeCedula('No se pudo consultar la cedula en este momento.');
+    if (!response.success) {
+      setEstadoCedula('nuevo');
+      setMensajeCedula('Cédula no registrada. Completa el nombre del cliente o conductor.');
+      return;
     }
+
+    const cliente = response.data;
+    setClienteId(cliente.id);
+    setNombre(cliente.nombre ?? '');
+    setTelefono(cliente.telefono ?? '');
+    setEmail(cliente.email ?? '');
+
+    if (cliente.empresa && tipoIngreso === 'empresa' && !empresaId) {
+      setEmpresaId(cliente.empresa.id);
+    }
+
+    setEstadoCedula('encontrado');
+    setMensajeCedula('Cliente encontrado. Revisa los datos y continua.');
   };
 
   const seleccionarTipoIngreso = (tipo: TipoIngreso) => {
@@ -210,13 +212,13 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
       let clienteFinalId = clienteId;
 
       if (clienteFinalId) {
-        const clienteRes = await actualizarCliente(clienteFinalId, {
+        const clienteRes = await llamarApi(() => actualizarCliente(clienteFinalId!, {
           nombre: nombreLimpio,
           cedula: cedulaLimpia,
           telefono: telefonoLimpio,
           email: emailLimpio,
           empresaId: empresaSeleccionadaId,
-        });
+        }));
 
         if (!clienteRes.success) {
           Alert.alert('Error', clienteRes.message);
@@ -225,23 +227,23 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
 
         clienteFinalId = clienteRes.data.id;
       } else {
-        const clienteRes = await crearCliente({
+        const clienteRes = await llamarApi(() => crearCliente({
           nombre: nombreLimpio,
           cedula: cedulaLimpia,
           telefono: telefonoLimpio,
           email: emailLimpio,
           empresaId: empresaSeleccionadaId,
-        });
+        }));
 
         if (!clienteRes.success) {
-          Alert.alert('Error', clienteRes.message);
+          Alert.alert('No se pudo registrar', clienteRes.message);
           return;
         }
 
         clienteFinalId = clienteRes.data.id;
       }
 
-      const vehiculoRes = await crearVehiculo({
+      const vehiculoRes = await llamarApi(() => crearVehiculo({
         placa,
         marca: marcaLimpia,
         modelo: modeloLimpio,
@@ -249,10 +251,22 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
         color: colorLimpio,
         clienteId: clienteFinalId,
         empresaId: empresaSeleccionadaId,
-      });
+      }));
 
+      Alert.alert('ress', vehiculoRes.toString());
       if (!vehiculoRes.success) {
-        Alert.alert('Error', vehiculoRes.message);
+        const busqueda = await llamarApi(() => buscarPorPlaca(placa));
+        if (busqueda.success) {
+          Alert.alert(
+            'Vehículo ya registrado',
+            'Esta placa ya existe en el sistema. Te llevamos al vehículo.',
+            [{ text: 'OK', onPress: () => navigation.navigate('Vehiculo', { vehiculo: busqueda.data }) }]
+          );
+          return;
+        }
+        else {
+          Alert.alert('No se pudo registrars', vehiculoRes.message);
+        }
         return;
       }
 
@@ -263,7 +277,8 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
         },
       ]);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo conectar con el servidor');
+      const mensajeError = (error as any)?.response?.data?.message ?? (error as any)?.message ?? 'Error inesperado, intenta de nuevo';
+      Alert.alert('No se pudo registrar', mensajeError);
     } finally {
       setLoading(false);
     }
@@ -308,226 +323,265 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="always"
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#0a0f14' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={90}
     >
-      <View style={styles.header}>
-        <Text style={styles.placaBadge}>{placa}</Text>
-        <Text style={styles.subtitle}>Placa no registrada. Completa los datos.</Text>
-      </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-      <Text style={styles.sectionTitle}>TIPO DE INGRESO</Text>
-      <View style={styles.card}>
-        <View style={styles.toggleRow}>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              tipoIngreso === 'particular' && styles.toggleButtonActive,
-            ]}
-            onPress={() => seleccionarTipoIngreso('particular')}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                tipoIngreso === 'particular' && styles.toggleTextActive,
-              ]}
-            >
-              Particular
-            </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              tipoIngreso === 'empresa' && styles.toggleButtonActive,
-            ]}
-            onPress={() => seleccionarTipoIngreso('empresa')}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                tipoIngreso === 'empresa' && styles.toggleTextActive,
-              ]}
-            >
-              Empresa
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.placaBadge}>{placa}</Text>
+            <Text style={styles.subtitle}>Placa no registrada. Completa los datos.</Text>
+          </View>
 
-      {tipoIngreso === 'empresa' && (
-        <>
-          <Text style={styles.sectionTitle}>EMPRESA</Text>
+          <Text style={styles.sectionTitle}>TIPO DE INGRESO</Text>
           <View style={styles.card}>
-            {cargandoEmpresas ? (
-              <Text style={styles.helperText}>Cargando empresas...</Text>
-            ) : empresas.length ? (
-              <View style={styles.companyList}>
-                {empresas.map(item => {
-                  const selected = item.id === empresaId;
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[
-                        styles.companyButton,
-                        selected && styles.companyButtonActive,
-                      ]}
-                      onPress={() => setEmpresaId(item.id)}
-                    >
-                      <Text
-                        style={[
-                          styles.companyButtonText,
-                          selected && styles.companyButtonTextActive,
-                        ]}
-                      >
-                        {item.nombre}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            <View style={styles.toggleRow}>
+              <TouchableOpacity
+                style={[
+                  styles.toggleButton,
+                  tipoIngreso === 'particular' && styles.toggleButtonActive,
+                ]}
+                onPress={() => seleccionarTipoIngreso('particular')}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    tipoIngreso === 'particular' && styles.toggleTextActive,
+                  ]}
+                >
+                  Particular
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.toggleButton,
+                  tipoIngreso === 'empresa' && styles.toggleButtonActive,
+                ]}
+                onPress={() => seleccionarTipoIngreso('empresa')}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    tipoIngreso === 'empresa' && styles.toggleTextActive,
+                  ]}
+                >
+                  Empresa
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {tipoIngreso === 'empresa' && (
+            <>
+              <Text style={styles.sectionTitle}>EMPRESA</Text>
+              <View style={styles.card}>
+                {cargandoEmpresas ? (
+                  <Text style={styles.helperText}>Cargando empresas...</Text>
+                ) : empresas.length ? (
+                  <View style={styles.companyList}>
+                    {empresas.map(item => {
+                      const selected = item.id === empresaId;
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={[
+                            styles.companyButton,
+                            selected && styles.companyButtonActive,
+                          ]}
+                          onPress={() => setEmpresaId(item.id)}
+                        >
+                          <Text
+                            style={[
+                              styles.companyButtonText,
+                              selected && styles.companyButtonTextActive,
+                            ]}
+                          >
+                            {item.nombre}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <Text style={styles.helperText}>No hay empresas registradas en la base de datos.</Text>
+                )}
+
+                {empresaSeleccionada && (
+                  <Text style={styles.selectionText}>
+                    Facturar a: {empresaSeleccionada.nombre}
+                  </Text>
+                )}
               </View>
-            ) : (
-              <Text style={styles.helperText}>No hay empresas registradas en la base de datos.</Text>
-            )}
-
-            {empresaSeleccionada && (
-              <Text style={styles.selectionText}>
-                Facturar a: {empresaSeleccionada.nombre}
-              </Text>
-            )}
-          </View>
-        </>
-      )}
-
-      <Text style={styles.sectionTitle}>
-        {tipoIngreso === 'empresa' ? 'DATOS DEL CONDUCTOR' : 'DATOS DEL CLIENTE'}
-      </Text>
-      <View style={styles.card}>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Cedula *</Text>
-          <View style={styles.searchRow}>
-            <TextInput
-              style={[styles.input, styles.searchInput]}
-              value={cedula}
-              onChangeText={onChangeCedula}
-              keyboardType="numeric"
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="Ingresa cedula"
-              placeholderTextColor={PLACEHOLDER_COLOR}
-              selectionColor="#00c8ff"
-            />
-            <TouchableOpacity
-              style={[
-                styles.searchButton,
-                (!cedula.trim() || estadoCedula === 'buscando') && styles.searchButtonDisabled,
-              ]}
-              onPress={buscarClienteExistente}
-              disabled={!cedula.trim() || estadoCedula === 'buscando'}
-            >
-              {estadoCedula === 'buscando' ? (
-                <ActivityIndicator color="#03131b" />
-              ) : (
-                <Text style={styles.searchButtonText}>Buscar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {mensajeCedula ? (
-            <Text
-              style={[
-                styles.lookupMessage,
-                estadoCedula === 'encontrado' && styles.lookupMessageSuccess,
-                estadoCedula === 'nuevo' && styles.lookupMessageInfo,
-                estadoCedula === 'error' && styles.lookupMessageError,
-              ]}
-            >
-              {mensajeCedula}
-            </Text>
-          ) : null}
-        </View>
-
-        {clientFields.map(renderField)}
-      </View>
-
-      <Text style={styles.sectionTitle}>DATOS DEL VEHICULO</Text>
-      <View style={styles.card}>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Marca *</Text>
-          <TextInput
-            style={styles.input}
-            value={marca}
-            onChangeText={setMarca}
-            autoCapitalize="words"
-            autoCorrect={false}
-            placeholder="Escribe o toca una marca"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-            selectionColor="#00c8ff"
-          />
-          {renderChipRow(brandSuggestions, setMarca, marca)}
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Modelo *</Text>
-          <TextInput
-            style={styles.input}
-            value={modelo}
-            onChangeText={setModelo}
-            autoCapitalize="words"
-            autoCorrect={false}
-            placeholder="Escribe o toca un modelo"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-            selectionColor="#00c8ff"
-          />
-          {modelSuggestions.length ? (
-            renderChipRow(modelSuggestions, setModelo, modelo)
-          ) : (
-            <Text style={styles.helperText}>Escribe el modelo si no aparece en la lista.</Text>
+            </>
           )}
-        </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Ano *</Text>
-          <TextInput
-            style={styles.input}
-            value={anio}
-            onChangeText={texto => setAnio(texto.replace(/\D/g, '').slice(0, 4))}
-            keyboardType="numeric"
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="Ingresa el ano"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-            selectionColor="#00c8ff"
-          />
-          {renderChipRow(yearSuggestions, setAnio, anio)}
-        </View>
+          <Text style={styles.sectionTitle}>
+            {tipoIngreso === 'empresa' ? 'DATOS DEL CONDUCTOR' : 'DATOS DEL CLIENTE'}
+          </Text>
+          <View style={styles.card}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Cedula *</Text>
+              <View style={styles.searchRow}>
+                <TextInput
+                  style={[styles.input, styles.searchInput]}
+                  value={cedula}
+                  onChangeText={onChangeCedula}
+                  keyboardType="numeric"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="Ingresa cedula"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                  selectionColor="#00c8ff"
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.searchButton,
+                    (!cedula.trim() || estadoCedula === 'buscando') && styles.searchButtonDisabled,
+                  ]}
+                  onPress={buscarClienteExistente}
+                  disabled={!cedula.trim() || estadoCedula === 'buscando'}
+                >
+                  {estadoCedula === 'buscando' ? (
+                    <ActivityIndicator color="#03131b" />
+                  ) : (
+                    <Text style={styles.searchButtonText}>Buscar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Color</Text>
-          <TextInput
-            style={styles.input}
-            value={color}
-            onChangeText={setColor}
-            autoCapitalize="words"
-            autoCorrect={false}
-            placeholder="Escribe o toca un color"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-            selectionColor="#00c8ff"
-          />
-          {renderChipRow(COMMON_COLORS, setColor, color)}
-        </View>
-      </View>
+              {mensajeCedula ? (
+                <Text
+                  style={[
+                    styles.lookupMessage,
+                    estadoCedula === 'encontrado' && styles.lookupMessageSuccess,
+                    estadoCedula === 'nuevo' && styles.lookupMessageInfo,
+                    estadoCedula === 'error' && styles.lookupMessageError,
+                  ]}
+                >
+                  {mensajeCedula}
+                </Text>
+              ) : null}
+            </View>
 
-      <TouchableOpacity style={styles.btnPrimary} onPress={registrar} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#000" />
-        ) : (
-          <Text style={styles.btnPrimaryText}>REGISTRAR VEHICULO</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+            {clientFields.map(renderField)}
+            {/* Campo email con autocompletado */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Ingresa email"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                selectionColor="#00c8ff"
+              />
+              {emailSuggestions.length > 0 && (
+                <View style={styles.emailSuggestions}>
+                  {emailSuggestions.map(suggestion => (
+                    <TouchableOpacity
+                      key={suggestion}
+                      style={styles.emailSuggestionItem}
+                      onPress={() => setEmail(suggestion)}
+                    >
+                      <Text style={styles.emailSuggestionText}>{suggestion}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+
+          <Text style={styles.sectionTitle}>DATOS DEL VEHICULO</Text>
+          <View style={styles.card}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Marca *</Text>
+              <TextInput
+                style={styles.input}
+                value={marca}
+                onChangeText={setMarca}
+                autoCapitalize="words"
+                autoCorrect={false}
+                placeholder="Escribe o toca una marca"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                selectionColor="#00c8ff"
+              />
+              {renderChipRow(brandSuggestions, setMarca, marca)}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Modelo *</Text>
+              <TextInput
+                style={styles.input}
+                value={modelo}
+                onChangeText={setModelo}
+                autoCapitalize="words"
+                autoCorrect={false}
+                placeholder="Escribe o toca un modelo"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                selectionColor="#00c8ff"
+              />
+              {modelSuggestions.length ? (
+                renderChipRow(modelSuggestions, setModelo, modelo)
+              ) : (
+                <Text style={styles.helperText}>Escribe el modelo si no aparece en la lista.</Text>
+              )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Año *</Text>
+              <TextInput
+                style={styles.input}
+                value={anio}
+                onChangeText={texto => setAnio(texto.replace(/\D/g, '').slice(0, 4))}
+                keyboardType="numeric"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Ingresa el año"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                selectionColor="#00c8ff"
+              />
+              {renderChipRow(yearSuggestions, setAnio, anio)}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Color</Text>
+              <TextInput
+                style={styles.input}
+                value={color}
+                onChangeText={setColor}
+                autoCapitalize="words"
+                autoCorrect={false}
+                placeholder="Escribe o toca un color"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                selectionColor="#00c8ff"
+              />
+              {renderChipRow(COMMON_COLORS, setColor, color)}
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.btnPrimary} onPress={registrar} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.btnPrimaryText}>REGISTRAR VEHICULO</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -734,5 +788,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
     letterSpacing: 1,
+  },
+  emailSuggestions: {
+    backgroundColor: '#111d27',
+    borderWidth: 1,
+    borderColor: '#274055',
+    borderRadius: 10,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  emailSuggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a2b39',
+  },
+  emailSuggestionText: {
+    color: '#00c8ff',
+    fontSize: 14,
   },
 });

@@ -1,5 +1,6 @@
 import api from './config';
 import { ApiResponse, Cliente } from '../types';
+import { AxiosResponse } from 'axios';
 
 export const crearCliente = async (data: {
   nombre: string;
@@ -7,14 +8,12 @@ export const crearCliente = async (data: {
   telefono: string;
   email: string;
   empresaId?: number | null;
-}): Promise<ApiResponse<Cliente>> => {
-  const response = await api.post('/clientes', data);
-  return response.data;
+}): Promise<AxiosResponse<ApiResponse<Cliente>>> => {
+  return api.post('/clientes', data);
 };
 
-export const buscarPorCedula = async (cedula: string): Promise<ApiResponse<Cliente>> => {
-  const response = await api.get(`/clientes/cedula/${cedula}`);
-  return response.data;
+export const buscarPorCedula = async (cedula: string): Promise<AxiosResponse<ApiResponse<Cliente>>> => {
+  return api.get(`/clientes/cedula/${cedula}`);
 };
 
 export const actualizarCliente = async (id: number, data: {
@@ -23,7 +22,6 @@ export const actualizarCliente = async (id: number, data: {
   telefono: string;
   email: string;
   empresaId?: number | null;
-}): Promise<ApiResponse<Cliente>> => {
-  const response = await api.put(`/clientes/${id}`, data);
-  return response.data;
+}): Promise<AxiosResponse<ApiResponse<Cliente>>> => {
+  return api.put(`/clientes/${id}`, data);
 };

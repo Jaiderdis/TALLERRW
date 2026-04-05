@@ -22,6 +22,13 @@ public class OrdenesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("pendientes")]
+    public async Task<IActionResult> ObtenerPendientes()
+    {
+        var result = await _ordenService.ObtenerPendientesAsync();
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> ObtenerPorId(int id)
     {

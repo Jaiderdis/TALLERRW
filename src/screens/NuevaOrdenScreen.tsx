@@ -10,6 +10,7 @@ import { Vehiculo, Tecnico, CatalogoServicio } from '../types';
 import { obtenerTecnicos } from '../api/tecnicos';
 import { obtenerCatalogo } from '../api/catalogo';
 import { crearOrden } from '../api/ordenes';
+import { llamarApi } from '../api/apiHelper';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'NuevaOrden'>;
@@ -46,7 +47,7 @@ export default function NuevaOrdenScreen({ navigation, route }: Props) {
   useEffect(() => {
     const cargar = async () => {
       try {
-        const [t, c] = await Promise.all([obtenerTecnicos(), obtenerCatalogo()]);
+        const [t, c] = await Promise.all([ llamarApi(() => obtenerTecnicos()), llamarApi(() => obtenerCatalogo()) ]);
         setTecnicos(t.data);
         setCatalogo(c.data);
       } catch {
@@ -103,7 +104,7 @@ export default function NuevaOrdenScreen({ navigation, route }: Props) {
 
     setGuardando(true);
     try {
-      const result = await crearOrden(body);
+      const result = await llamarApi(() => crearOrden(body));
       if (result.success) {
         navigation.reset({
           index: 1,

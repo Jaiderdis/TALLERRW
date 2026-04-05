@@ -3,8 +3,9 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, Alert, RefreshControl
 } from 'react-native';
-import { obtenerOrdenesHoy, actualizarEstado } from '../api/ordenes';
+import { obtenerOrdenesPendientes, actualizarEstado } from '../api/ordenes';
 import { Orden } from '../types';
+import { llamarApi } from '../api/apiHelper';
 
 const ESTADO_COLORS: Record<string, string> = {
   EnEspera: '#ffb800', EnProceso: '#00c8ff', Completada: '#00e096', Cancelada: '#ff6b2b'
@@ -20,10 +21,10 @@ export default function OrdenesHoyScreen() {
 
   const cargar = async () => {
     try {
-      const result = await obtenerOrdenesHoy();
+      const result = await llamarApi(() => obtenerOrdenesPendientes());
       setOrdenes(result.data);
     } catch {
-      Alert.alert('Error', 'No se pudieron cargar las órdenes');
+      Alert.alert('Error', 'No se pudieron cargar las órdenes pendientes');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -78,7 +79,7 @@ export default function OrdenesHoyScreen() {
       {ordenes.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📭</Text>
-          <Text style={styles.emptyText}>Sin órdenes por hoy</Text>
+          <Text style={styles.emptyText}>No hay órdenes pendientes</Text>
         </View>
       ) : (
         ordenes.map(orden => (

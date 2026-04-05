@@ -17,6 +17,9 @@ namespace Application.Interfaces.Services
         // Todas las órdenes del día — para la pantalla principal del técnico
         Task<ApiResponse<List<OrdenResponse>>> ObtenerHoyAsync();
 
+        // Órdenes pendientes (EnEspera o EnProceso) sin filtro de fecha
+        Task<ApiResponse<List<OrdenResponse>>> ObtenerPendientesAsync();
+
         // Cambia el estado: EnEspera → EnProceso → Completada
         Task<ApiResponse<OrdenResponse>> ActualizarEstadoAsync(int id, string estado);
     }

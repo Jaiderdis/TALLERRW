@@ -1,5 +1,6 @@
 import api from './config';
 import { ApiResponse, Orden } from '../types';
+import { AxiosResponse } from 'axios';
 
 export const crearOrden = async (data: {
   vehiculoId: number;
@@ -10,25 +11,18 @@ export const crearOrden = async (data: {
   kmIngreso: number;
   observaciones: string;
   serviciosIds: number[];
-}): Promise<ApiResponse<Orden>> => {
-  try {
-    const response = await api.post('/ordenes', data);
-    return response.data;
-  } catch (error: any) {
-    // Si la API responde con un error controlado, retornarlo como ApiResponse
-    if (error.response?.data) {
-      return error.response.data;
-    }
-    throw error;
-  }
+}): Promise<AxiosResponse<ApiResponse<Orden>>> => {
+  return api.post('/ordenes', data);
 };
 
-export const obtenerOrdenesHoy = async (): Promise<ApiResponse<Orden[]>> => {
-  const response = await api.get('/ordenes/hoy');
-  return response.data;
+export const obtenerOrdenesHoy = async (): Promise<AxiosResponse<ApiResponse<Orden[]>>> => {
+  return api.get('/ordenes/hoy');
 };
 
-export const actualizarEstado = async (id: number, estado: string): Promise<ApiResponse<Orden>> => {
-  const response = await api.put(`/ordenes/${id}/estado`, { estado });
-  return response.data;
+export const obtenerOrdenesPendientes = async (): Promise<AxiosResponse<ApiResponse<Orden[]>>> => {
+  return api.get('/ordenes/pendientes');
+};
+
+export const actualizarEstado = async (id: number, estado: string): Promise<AxiosResponse<ApiResponse<Orden>>> => {
+  return api.put(`/ordenes/${id}/estado`, { estado });
 };

@@ -42,6 +42,20 @@ public class OrdenRepository : IOrdenRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<OrdenServicio>> ObtenerPendientesAsync()
+    {
+        return await _context.OrdenesServicio
+            .Include(o => o.Vehiculo)
+            .Include(o => o.Tecnico)
+            .Include(o => o.Cliente)
+            .Include(o => o.Empresa)
+            .Include(o => o.Detalles)
+                .ThenInclude(d => d.Servicio)
+            .Where(o => o.Estado == Domain.Enums.EstadoOrden.EnEspera || o.Estado == Domain.Enums.EstadoOrden.EnProceso)
+            .OrderByDescending(o => o.FechaIngreso)
+            .ToListAsync();
+    }
+
     public async Task<OrdenServicio> CrearAsync(OrdenServicio orden)
     {
         _context.OrdenesServicio.Add(orden);
