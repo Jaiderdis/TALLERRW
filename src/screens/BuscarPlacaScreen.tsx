@@ -171,6 +171,8 @@ export default function BuscarPlacaScreen({ navigation }: Props) {
               )}
             </View>
 
+            {/* Accesos solo en tablet */}
+            {isTablet && (
             <View style={styles.shortcutsCard}>
               <Text style={styles.shortcutsTitle}>ACCESOS</Text>
 
@@ -202,10 +204,67 @@ export default function BuscarPlacaScreen({ navigation }: Props) {
                 <Text style={styles.shortcutButtonDisabledText}>Cotizaciones</Text>
               </TouchableOpacity>
             </View>
+            )}
+
+            {/* En celular: botón buscar solo */}
+            {!isTablet && (
+              <View style={styles.mobileControlsCard}>
+                <TouchableOpacity
+                  style={[
+                    styles.controlButton,
+                    styles.controlPrimary,
+                    styles.mobileControlPrimaryFull,
+                    (!canSearch || loading) && styles.controlPrimaryDisabled,
+                  ]}
+                  onPress={buscar}
+                  disabled={!canSearch || loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#03131b" />
+                  ) : (
+                    <Text style={styles.controlPrimaryText}>Buscar vehiculo</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
-          <View style={styles.keyboardPanel}>
-            {isTablet ? (
+          {/* Accesos solo en celular */}
+          {!isTablet && (
+            <View style={styles.shortcutsCard}>
+              <TouchableOpacity
+                style={[styles.shortcutButton, styles.shortcutButtonPrimary]}
+                onPress={() => navigation.navigate('OrdenesHoy')}
+              >
+                <Text style={styles.shortcutButtonPrimaryText}>Ver ordenes del dia</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.shortcutButton, styles.shortcutButtonDisabled]}
+                disabled
+              >
+                <Text style={styles.shortcutButtonDisabledText}>Revisiones pendientes</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.shortcutButton, styles.shortcutButtonDisabled]}
+                disabled
+              >
+                <Text style={styles.shortcutButtonDisabledText}>Ficha de revision</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.shortcutButton, styles.shortcutButtonDisabled]}
+                disabled
+              >
+                <Text style={styles.shortcutButtonDisabledText}>Cotizaciones</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Panel de teclado + controles solo en tablet */}
+          {isTablet && (
+            <View style={styles.keyboardPanel}>
               <View style={styles.keyboardContent}>
                 <View style={styles.keyboardSpacer} />
 
@@ -232,42 +291,42 @@ export default function BuscarPlacaScreen({ navigation }: Props) {
 
                 <View style={styles.keyboardSpacer} />
               </View>
-            ) : null}
 
-            <View style={styles.controlsRow}>
-              <TouchableOpacity
-                style={[styles.controlButton, styles.controlSecondary]}
-                onPress={borrarUltimo}
-                disabled={loading || !placa.length}
-              >
-                <Text style={styles.controlSecondaryText}>Borrar</Text>
-              </TouchableOpacity>
+              <View style={styles.controlsRow}>
+                <TouchableOpacity
+                  style={[styles.controlButton, styles.controlSecondary]}
+                  onPress={borrarUltimo}
+                  disabled={loading || !placa.length}
+                >
+                  <Text style={styles.controlSecondaryText}>Borrar</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.controlButton, styles.controlSecondary]}
-                onPress={limpiar}
-                disabled={loading || !placa.length}
-              >
-                <Text style={styles.controlSecondaryText}>Limpiar</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.controlButton, styles.controlSecondary]}
+                  onPress={limpiar}
+                  disabled={loading || !placa.length}
+                >
+                  <Text style={styles.controlSecondaryText}>Limpiar</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  styles.controlPrimary,
-                  (!canSearch || loading) && styles.controlPrimaryDisabled,
-                ]}
-                onPress={buscar}
-                disabled={!canSearch || loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#03131b" />
-                ) : (
-                  <Text style={styles.controlPrimaryText}>Buscar vehiculo</Text>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.controlButton,
+                    styles.controlPrimary,
+                    (!canSearch || loading) && styles.controlPrimaryDisabled,
+                  ]}
+                  onPress={buscar}
+                  disabled={!canSearch || loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#03131b" />
+                  ) : (
+                    <Text style={styles.controlPrimaryText}>Buscar vehiculo</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -300,7 +359,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: '#1c3142',
-    marginBottom: 16,
+    marginBottom: 40,
   },
   lookupPanelSplit: {
     flex: 0.72,
@@ -496,5 +555,13 @@ const styles = StyleSheet.create({
     color: '#03131b',
     fontSize: 18,
     fontWeight: '900',
+  },
+  mobileControlsCard: {
+    marginTop: 18,
+  },
+  mobileControlPrimaryFull: {
+    flex: 1,
+    width: '100%',
+    minHeight: 60,
   },
 });

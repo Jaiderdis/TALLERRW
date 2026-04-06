@@ -4,7 +4,8 @@
       "Bash(dotnet run:*)",
       "Bash(npm run:*)",
       "Bash(/c/Program Files/dotnet/dotnet run:*)",
-      "Bash(/c/Program Files/dotnet/dotnet:*)"
+      "Bash(/c/Program Files/dotnet/dotnet:*)",
+      "Bash(npx expo:*)"
     ]
   }
 }

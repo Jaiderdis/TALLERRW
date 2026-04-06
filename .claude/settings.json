@@ -7,8 +7,8 @@
   },
   "env": {
     "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
-    "ANTHROPIC_AUTH_TOKEN": "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",
+    "ANTHROPIC_AUTH_TOKEN": "c2stb3ItdjEtMmI2ZjgxNjhlMWU0ZDlhMzJkMWRkMzM4ZTcxMTg4YTM5YmQzMzUzZGE4YTkzNWEwZjkwNGJkZDk1Mzc4MzBjZA==",
     "ANTHROPIC_API_KEY": "",
-    "ANTHROPIC_MODEL": "openai/gpt-oss-120b:free"
+    "ANTHROPIC_MODEL": "qwen/qwen3.6-plus:free"
   }
 }

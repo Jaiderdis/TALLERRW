@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -50,6 +50,19 @@ const PLACEHOLDER_COLOR = '#7f9bb4';
 export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   const { placa } = route.params;
   const [loading, setLoading] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [fieldErrors, setFieldErrors] = useState({
+    cedula: false,
+    nombre: false,
+    marca: false,
+    modelo: false,
+    anio: false,
+  });
+  const cedulaRef = React.useRef<TextInput>(null);
+  const nombreRef = React.useRef<TextInput>(null);
+  const marcaRef = React.useRef<TextInput>(null);
+  const modeloRef = React.useRef<TextInput>(null);
+  const anioRef = React.useRef<TextInput>(null);
   const [tipoIngreso, setTipoIngreso] = useState<TipoIngreso>('particular');
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [cargandoEmpresas, setCargandoEmpresas] = useState(true);
@@ -114,11 +127,10 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   const EMAIL_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
   const clientFields = useMemo<FieldConfig[]>(
     () => [
-      { label: 'Nombre completo *', value: nombre, setValue: setNombre, autoCapitalize: 'words' },
       { label: 'Telefono', value: telefono, setValue: setTelefono, keyboardType: 'phone-pad', autoCapitalize: 'none' },
       // { label: 'Email', value: email, setValue: setEmail, keyboardType: 'email-address', autoCapitalize: 'none' },
     ],
-    [email, nombre, telefono]
+    [email, telefono]
   );
 
   const emailSuggestions = useMemo(() => {
@@ -141,6 +153,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
       setEmail('');
     }
 
+    setFieldErrors(prev => ({ ...prev, cedula: false }));
     setCedula(cedulaLimpia);
     limpiarClienteEncontrado();
   };
@@ -196,8 +209,20 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
     const colorLimpio = color.trim();
     const empresaSeleccionadaId = tipoIngreso === 'empresa' ? empresaId : null;
 
-    if (!cedulaLimpia || !nombreLimpio || !marcaLimpia || !modeloLimpio || !anio.trim()) {
-      Alert.alert('Error', 'Completa los campos obligatorios');
+    // Validate required fields and show missing ones
+    const errors = { cedula: false, nombre: false, marca: false, modelo: false, anio: false };
+    let firstEmpty: TextInput | null = null;
+
+    if (!cedulaLimpia) { errors.cedula = true; if (!firstEmpty) firstEmpty = cedulaRef.current; }
+    if (!nombreLimpio) { errors.nombre = true; if (!firstEmpty) firstEmpty = nombreRef.current; }
+    if (!marcaLimpia) { errors.marca = true; if (!firstEmpty) firstEmpty = marcaRef.current; }
+    if (!modeloLimpio) { errors.modelo = true; if (!firstEmpty) firstEmpty = modeloRef.current; }
+    if (!anio.trim()) { errors.anio = true; if (!firstEmpty) firstEmpty = anioRef.current; }
+
+    setFieldErrors(errors);
+
+    if (Object.values(errors).some(Boolean)) {
+      firstEmpty?.focus();
       return;
     }
 
@@ -433,9 +458,10 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
               <Text style={styles.label}>Cedula *</Text>
               <View style={styles.searchRow}>
                 <TextInput
-                  style={[styles.input, styles.searchInput]}
+                  ref={cedulaRef}
+                  style={[styles.input, styles.searchInput, fieldErrors.cedula && styles.inputError]}
                   value={cedula}
-                  onChangeText={onChangeCedula}
+                  onChangeText={(text) => { setFieldErrors(prev => ({ ...prev, cedula: false })); onChangeCedula(text); }}
                   keyboardType="numeric"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -472,8 +498,25 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
                 </Text>
               ) : null}
             </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Nombre completo *</Text>
+              <TextInput
+                ref={nombreRef}
+                style={[styles.input, fieldErrors.nombre && styles.inputError]}
+                value={nombre}
+                onChangeText={(text) => { setNombre(text); setFieldErrors(prev => ({ ...prev, nombre: false })); }}
+                autoCapitalize="words"
+                autoCorrect={false}
+                placeholder="Ingresa nombre completo"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                selectionColor="#00c8ff"
+              />
+            </View>
+
 
             {clientFields.map(renderField)}
+
+            
             {/* Campo email con autocompletado */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Email</Text>
@@ -509,24 +552,26 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
             <View style={styles.formGroup}>
               <Text style={styles.label}>Marca *</Text>
               <TextInput
-                style={styles.input}
+                ref={marcaRef}
+                style={[styles.input, fieldErrors.marca && styles.inputError]}
                 value={marca}
-                onChangeText={setMarca}
+                onChangeText={(text) => { setMarca(text); setFieldErrors(prev => ({ ...prev, marca: false })); }}
                 autoCapitalize="words"
                 autoCorrect={false}
                 placeholder="Escribe o toca una marca"
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 selectionColor="#00c8ff"
               />
-              {renderChipRow(brandSuggestions, setMarca, marca)}
+              {brandSuggestions.length > 0 && renderChipRow(brandSuggestions, (v) => { setMarca(v); setFieldErrors(prev => ({ ...prev, marca: false })); }, marca)}
             </View>
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Modelo *</Text>
               <TextInput
-                style={styles.input}
+                ref={modeloRef}
+                style={[styles.input, fieldErrors.modelo && styles.inputError]}
                 value={modelo}
-                onChangeText={setModelo}
+                onChangeText={(text) => { setModelo(text); setFieldErrors(prev => ({ ...prev, modelo: false })); }}
                 autoCapitalize="words"
                 autoCorrect={false}
                 placeholder="Escribe o toca un modelo"
@@ -534,7 +579,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
                 selectionColor="#00c8ff"
               />
               {modelSuggestions.length ? (
-                renderChipRow(modelSuggestions, setModelo, modelo)
+                renderChipRow(modelSuggestions, (v) => { setModelo(v); setFieldErrors(prev => ({ ...prev, modelo: false })); }, modelo)
               ) : (
                 <Text style={styles.helperText}>Escribe el modelo si no aparece en la lista.</Text>
               )}
@@ -543,9 +588,10 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
             <View style={styles.formGroup}>
               <Text style={styles.label}>Año *</Text>
               <TextInput
-                style={styles.input}
+                ref={anioRef}
+                style={[styles.input, fieldErrors.anio && styles.inputError]}
                 value={anio}
-                onChangeText={texto => setAnio(texto.replace(/\D/g, '').slice(0, 4))}
+                onChangeText={(text) => { setAnio(text.replace(/\D/g, '').slice(0, 4)); setFieldErrors(prev => ({ ...prev, anio: false })); }}
                 keyboardType="numeric"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -553,7 +599,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 selectionColor="#00c8ff"
               />
-              {renderChipRow(yearSuggestions, setAnio, anio)}
+              {yearSuggestions.length > 0 && renderChipRow(yearSuggestions, (v) => { setAnio(v); setFieldErrors(prev => ({ ...prev, anio: false })); }, anio)}
             </View>
 
             <View style={styles.formGroup}>
@@ -717,6 +763,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     justifyContent: 'center',
   },
+  inputError: {
+    borderColor: '#ff3b30',
+    borderWidth: 1.5,
+  },
   searchButton: {
     minHeight: 48,
     minWidth: 92,
@@ -784,13 +834,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   btnPrimaryText: {
-    color: '#000',
-    fontWeight: '700',
-    fontSize: 15,
-    letterSpacing: 1,
+    // existing
   },
   emailSuggestions: {
-    backgroundColor: '#111d27',
+    backgroundColor: '#111d27', 
     borderWidth: 1,
     borderColor: '#274055',
     borderRadius: 10,
