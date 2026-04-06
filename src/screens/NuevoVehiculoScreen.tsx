@@ -253,7 +253,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
         empresaId: empresaSeleccionadaId,
       }));
 
-      Alert.alert('ress', vehiculoRes.toString());
+      // Removed debug alert
       if (!vehiculoRes.success) {
         const busqueda = await llamarApi(() => buscarPorPlaca(placa));
         if (busqueda.success) {
