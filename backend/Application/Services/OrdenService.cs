@@ -40,15 +40,11 @@ public class OrdenService : IOrdenService
         if (tecnico is null)
             return ApiResponse<OrdenResponse>.Fail("Técnico no encontrado");
 
-        // Obtener los servicios seleccionados
-        var servicios = new List<CatalogoServicio>();
-        foreach (var servicioId in request.ServiciosIds)
-        {
-            var servicio = await _catalogoRepo.ObtenerPorIdAsync(servicioId);
-            if (servicio is null)
-                return ApiResponse<OrdenResponse>.Fail($"Servicio {servicioId} no encontrado");
-            servicios.Add(servicio);
-        }
+        // Obtener los servicios seleccionados en una sola consulta
+        var servicios = (await _catalogoRepo.ObtenerPorIdsAsync(request.ServiciosIds)).ToList();
+        var idsNoEncontrados = request.ServiciosIds.Except(servicios.Select(s => s.Id)).ToList();
+        if (idsNoEncontrados.Count > 0)
+            return ApiResponse<OrdenResponse>.Fail($"Servicios no encontrados: {string.Join(", ", idsNoEncontrados)}");
 
         // Parsear prioridad
         if (!Enum.TryParse<Prioridad>(request.Prioridad, true, out var prioridad))
@@ -99,7 +95,7 @@ public class OrdenService : IOrdenService
 
     public async Task<ApiResponse<List<OrdenResponse>>> ObtenerHoyAsync()
     {
-        var ordenes = await _ordenRepo.ObtenerPorFechaAsync(DateTime.Now);
+        var ordenes = await _ordenRepo.ObtenerPorFechaAsync(DateTime.UtcNow);
         var response = ordenes.Select(MapearResponse).ToList();
         return ApiResponse<List<OrdenResponse>>.Ok(response);
     }

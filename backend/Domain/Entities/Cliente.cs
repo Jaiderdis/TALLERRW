@@ -13,7 +13,7 @@ namespace Domain.Entities
         public string Telefono { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public TipoCliente Tipo { get; set; } = TipoCliente.Natural;
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
         // FK nullable — solo si pertenece a una empresa
         public int? EmpresaId { get; set; }

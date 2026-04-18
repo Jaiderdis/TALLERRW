@@ -10,7 +10,7 @@ namespace Domain.Entities
         public string Nombre { get; set; } = string.Empty;
         public string Telefono { get; set; } = string.Empty;
         public bool Activo { get; set; } = true;
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
         // Navegación
         public ICollection<OrdenServicio> Ordenes { get; set; } = [];

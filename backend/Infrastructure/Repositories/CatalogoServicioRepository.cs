@@ -34,4 +34,11 @@ public class CatalogoServicioRepository : ICatalogoServicioRepository
         return await _context.CatalogoServicios
             .FirstOrDefaultAsync(s => s.Id == id);
     }
+
+    public async Task<IEnumerable<CatalogoServicio>> ObtenerPorIdsAsync(IEnumerable<int> ids)
+    {
+        return await _context.CatalogoServicios
+            .Where(s => ids.Contains(s.Id))
+            .ToListAsync();
+    }
 }

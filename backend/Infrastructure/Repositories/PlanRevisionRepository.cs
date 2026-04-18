@@ -35,6 +35,12 @@ public class PlanRevisionRepository : IPlanRevisionRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<PlanRevision?> ObtenerPorIdAsync(int id)
+    {
+        return await _context.PlanesRevision
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
     public async Task CrearPlanCompletoAsync(int vehiculoId, int ordenOrigenId)
     {
         // Crea las 3 revisiones automáticamente
@@ -72,7 +78,6 @@ public class PlanRevisionRepository : IPlanRevisionRepository
 
     public async Task<PlanRevision> ActualizarAsync(PlanRevision plan)
     {
-        _context.PlanesRevision.Update(plan);
         await _context.SaveChangesAsync();
         return plan;
     }

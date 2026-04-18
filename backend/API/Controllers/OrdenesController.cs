@@ -49,16 +49,4 @@ public class OrdenesController : ControllerBase
         var result = await _ordenService.ActualizarEstadoAsync(id, request.Estado);
         return result.Success ? Ok(result) : BadRequest(result);
     }
-
-
-    [HttpGet("debug")]
-    public IActionResult Debug()
-    {
-        return Ok(new
-        {
-            utcNow = DateTime.UtcNow,
-            now = DateTime.Now,
-            today = DateTime.Today
-        });
-    }
 }

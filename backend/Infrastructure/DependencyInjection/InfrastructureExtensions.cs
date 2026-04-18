@@ -1,6 +1,8 @@
-﻿using Domain.Interfaces.Repositories;
+﻿using System.Data;
+using Domain.Interfaces.Repositories;
 using Infrastructure.Data;
 using Infrastructure.Repositories;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,9 +15,14 @@ public static class InfrastructureExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")!;
+
         // Registrar DbContext con SQL Server
         services.AddDbContext<TallerContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(connectionString));
+
+        // Registrar IDbConnection para Dapper (scoped — una conexión por request)
+        services.AddScoped<IDbConnection>(_ => new SqlConnection(connectionString));
 
         // Registrar repositorios
         services.AddScoped<IVehiculoRepository, VehiculoRepository>();

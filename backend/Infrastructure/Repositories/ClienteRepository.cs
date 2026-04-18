@@ -37,7 +37,6 @@ public class ClienteRepository : IClienteRepository
 
     public async Task<Cliente> ActualizarAsync(Cliente cliente)
     {
-        _context.Clientes.Update(cliente);
         await _context.SaveChangesAsync();
         return cliente;
     }

@@ -37,7 +37,6 @@ public class TecnicoRepository : ITecnicoRepository
 
     public async Task<Tecnico> ActualizarAsync(Tecnico tecnico)
     {
-        _context.Tecnicos.Update(tecnico);
         await _context.SaveChangesAsync();
         return tecnico;
     }

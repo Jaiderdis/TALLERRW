@@ -14,7 +14,18 @@ public class VehiculoRepository : IVehiculoRepository
         _context = context;
     }
 
-    public async Task<Vehiculo?> ObtenerPorPlacaAsync(string placa)
+    public async Task<Vehiculo?> ObtenerResumenPorPlacaAsync(string placa)
+    {
+        return await _context.Vehiculos
+            .Include(v => v.Cliente)
+                .ThenInclude(c => c.Empresa)
+            .Include(v => v.Empresa)
+            .Include(v => v.Ordenes)
+            .Include(v => v.PlanesRevision)
+            .FirstOrDefaultAsync(v => v.Placa == placa.ToUpper().Trim());
+    }
+
+    public async Task<Vehiculo?> ObtenerDetalleCompletoAsync(string placa)
     {
         return await _context.Vehiculos
             .Include(v => v.Cliente)

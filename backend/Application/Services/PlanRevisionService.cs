@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Request;
+using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces.Services;
 using Domain.Entities;
@@ -58,6 +58,15 @@ public class PlanRevisionService : IPlanRevisionService
         };
 
         var creada = await _fichaRepo.CrearAsync(ficha);
+
+        // Marcar el plan como completado (lógica de negocio — no debe vivir en el repositorio)
+        var plan = await _planRepo.ObtenerPorIdAsync(request.PlanId);
+        if (plan is not null)
+        {
+            plan.Estado = EstadoRevision.Completada;
+            plan.FechaCompletada = DateTime.UtcNow;
+            await _planRepo.ActualizarAsync(plan);
+        }
 
         return ApiResponse<FichaRevisionResponse>.Ok(new FichaRevisionResponse
         {

@@ -7,7 +7,8 @@ namespace Domain.Interfaces.Repositories
 {
     public interface IVehiculoRepository
     {
-        Task<Vehiculo?> ObtenerPorPlacaAsync(string placa);
+        Task<Vehiculo?> ObtenerResumenPorPlacaAsync(string placa);
+        Task<Vehiculo?> ObtenerDetalleCompletoAsync(string placa);
         Task<Vehiculo?> ObtenerPorIdAsync(int id);
         Task<Vehiculo> CrearAsync(Vehiculo vehiculo);
         Task<bool> ExistePorPlacaAsync(string placa);

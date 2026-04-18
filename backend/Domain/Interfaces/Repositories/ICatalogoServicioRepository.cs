@@ -10,5 +10,6 @@ namespace Domain.Interfaces.Repositories
         Task<IEnumerable<CatalogoServicio>> ObtenerTodosAsync();
         Task<IEnumerable<CatalogoServicio>> ObtenerActivosAsync();
         Task<CatalogoServicio?> ObtenerPorIdAsync(int id);
+        Task<IEnumerable<CatalogoServicio>> ObtenerPorIdsAsync(IEnumerable<int> ids);
     }
 }

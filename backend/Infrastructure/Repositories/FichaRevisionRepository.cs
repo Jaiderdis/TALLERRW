@@ -1,5 +1,4 @@
 ﻿using Domain.Entities;
-using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -34,16 +33,6 @@ public class FichaRevisionRepository : IFichaRevisionRepository
 
     public async Task<FichaRevision> CrearAsync(FichaRevision ficha)
     {
-        // Al crear la ficha marcamos el plan como completado
-        var plan = await _context.PlanesRevision
-            .FirstOrDefaultAsync(p => p.Id == ficha.PlanId);
-
-        if (plan is not null)
-        {
-            plan.Estado = EstadoRevision.Completada;
-            plan.FechaCompletada = DateTime.UtcNow;
-        }
-
         _context.FichasRevision.Add(ficha);
         await _context.SaveChangesAsync();
         return ficha;

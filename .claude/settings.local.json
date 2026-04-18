@@ -1,11 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet run:*)",
-      "Bash(npm run:*)",
-      "Bash(/c/Program Files/dotnet/dotnet run:*)",
-      "Bash(/c/Program Files/dotnet/dotnet:*)",
-      "Bash(npx expo:*)"
+      "Bash(npm start *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8081)",
+      "Bash(taskkill *)",
+      "Bash(cmd *)",
+      "Bash(dotnet run *)",
+      "Bash(ipconfig)",
+      "Bash(powershell *)"
     ]
   }
 }

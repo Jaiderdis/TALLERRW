@@ -5,7 +5,7 @@ namespace Domain.Entities;
 public class FichaRevision
 {
     public int Id { get; set; }
-    public DateTime Fecha { get; set; } = DateTime.Now;
+    public DateTime Fecha { get; set; } = DateTime.UtcNow;
     public decimal PresionAlta { get; set; }
     public decimal PresionBaja { get; set; }
     public decimal TempSalida { get; set; }

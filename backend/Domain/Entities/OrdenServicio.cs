@@ -13,7 +13,7 @@ namespace Domain.Entities
         public Prioridad Prioridad { get; set; } = Prioridad.Normal;
         public int KmIngreso { get; set; }
         public string Observaciones { get; set; } = string.Empty;
-        public DateTime FechaIngreso { get; set; } = DateTime.Now;
+        public DateTime FechaIngreso { get; set; } = DateTime.UtcNow;
         public DateTime? FechaSalida { get; set; }
 
         // FK siempre requeridos

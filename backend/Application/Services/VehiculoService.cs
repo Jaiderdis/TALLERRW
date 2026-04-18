@@ -19,7 +19,7 @@ public class VehiculoService : IVehiculoService
 
     public async Task<ApiResponse<VehiculoResponse>> BuscarPorPlacaAsync(string placa)
     {
-        var vehiculo = await _vehiculoRepo.ObtenerPorPlacaAsync(placa.ToUpper().Trim());
+        var vehiculo = await _vehiculoRepo.ObtenerResumenPorPlacaAsync(placa.ToUpper().Trim());
 
         if (vehiculo is null)
             return ApiResponse<VehiculoResponse>.Fail($"No se encontró vehículo con placa {placa}");

@@ -43,7 +43,6 @@ public class EmpresaRepository : IEmpresaRepository
 
     public async Task<Empresa> ActualizarAsync(Empresa empresa)
     {
-        _context.Empresas.Update(empresa);
         await _context.SaveChangesAsync();
         return empresa;
     }

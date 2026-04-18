@@ -12,7 +12,7 @@ namespace Domain.Entities
         public string Modelo { get; set; } = string.Empty;
         public int Anio { get; set; }
         public string Color { get; set; } = string.Empty;
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
         // FK — siempre tiene cliente
         public int ClienteId { get; set; }

@@ -15,7 +15,7 @@ public class Empresa
     public string ContactoNombre { get; set; } = string.Empty;
     public string ContactoTelefono { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
-    public DateTime FechaCreacion { get; set; } = DateTime.Now;
+    public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
     // Navegación
     public ICollection<Cliente> Clientes { get; set; } = [];
