@@ -60,7 +60,7 @@ export default function AppNavigator() {
                 <Stack.Screen
                     name="OrdenesHoy"
                     component={OrdenesHoyScreen}
-                    options={{ title: 'Ordenes del Dia' }}
+                    options={{ headerShown: false }}
                 />
             </Stack.Navigator>
         </NavigationContainer>

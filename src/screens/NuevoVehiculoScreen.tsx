@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -28,6 +30,12 @@ import {
 import { llamarApi } from '../api/apiHelper';
 import { useEmpresas } from '../hooks/useEmpresas';
 import { nuevoVehiculoSchema } from '../schemas/nuevoVehiculo';
+import { COLORS } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
+import Section from '../components/Section';
+import ChipRow from '../components/ChipRow';
+import StickyCTA from '../components/StickyCTA';
+import PlateBlock from '../components/PlateBlock';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'NuevoVehiculo'>;
@@ -40,16 +48,17 @@ type FieldConfig = {
   setValue: (value: string) => void;
   keyboardType?: TextInputProps['keyboardType'];
   autoCapitalize?: TextInputProps['autoCapitalize'];
+  placeholder?: string;
+  mono?: boolean;
 };
 
 type TipoIngreso = 'particular' | 'empresa';
 type EstadoCedula = 'idle' | 'buscando' | 'encontrado' | 'nuevo' | 'error';
 
-// Claves validables del formulario
 type FieldErrorKey = 'cedula' | 'nombre' | 'marca' | 'modelo' | 'anio';
 type FieldErrors = Record<FieldErrorKey, boolean>;
 
-const PLACEHOLDER_COLOR = '#7f9bb4';
+const PLACEHOLDER_COLOR = COLORS.textDim;
 
 // Constantes estáticas definidas fuera del componente para evitar recreación en cada render
 const EMAIL_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
@@ -58,7 +67,11 @@ const YEAR_SUGGESTIONS = getSuggestedYears();
 export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   const { placa } = route.params;
   const [loading, setLoading] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+
+  // El header nativo se reemplaza por el ScreenHeader del diseño.
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({
     cedula: false,
     nombre: false,
@@ -88,42 +101,60 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   const [anio, setAnio] = useState('');
   const [color, setColor] = useState('');
 
-  // Las empresas se cargan mediante el hook useEmpresas (sin useEffect local)
-
   const empresaSeleccionada = useMemo(
-    () => empresas.find(item => item.id === empresaId) ?? null,
+    () => empresas.find((item) => item.id === empresaId) ?? null,
     [empresaId, empresas]
   );
 
   const brandSuggestions = useMemo(() => {
     const term = marca.trim().toLowerCase();
     const filtered = term
-      ? HEAVY_BRANDS.filter(item => item.toLowerCase().includes(term))
+      ? HEAVY_BRANDS.filter((item) => item.toLowerCase().includes(term))
       : HEAVY_BRANDS;
     return filtered.slice(0, 12);
   }, [marca]);
 
   const modelSuggestions = useMemo(() => {
-    const matchedBrand = HEAVY_BRANDS.find(item => item.toLowerCase() === marca.trim().toLowerCase());
+    const matchedBrand = HEAVY_BRANDS.find(
+      (item) => item.toLowerCase() === marca.trim().toLowerCase()
+    );
     const baseModels = matchedBrand ? MODELS_BY_BRAND[matchedBrand] ?? [] : [];
     const term = modelo.trim().toLowerCase();
     const filtered = term
-      ? baseModels.filter(item => item.toLowerCase().includes(term))
+      ? baseModels.filter((item) => item.toLowerCase().includes(term))
       : baseModels;
     return filtered.slice(0, 10);
   }, [marca, modelo]);
 
-  const clientFields = useMemo<FieldConfig[]>(
-    () => [
-      { label: 'Telefono', value: telefono, setValue: setTelefono, keyboardType: 'phone-pad', autoCapitalize: 'none' },
-    ],
-    [telefono]
-  );
-
   const emailSuggestions = useMemo(() => {
     if (!email.trim() || email.includes('@')) return [];
-    return EMAIL_DOMAINS.map(domain => `${email.trim()}@${domain}`);
+    return EMAIL_DOMAINS.map((domain) => `${email.trim()}@${domain}`);
   }, [email]);
+
+  // Meta del header: campos completados
+  const filledCount = useMemo(() => {
+    return [
+      Boolean(cedula && nombre),
+      Boolean(telefono || email),
+      Boolean(marca),
+      Boolean(modelo),
+      Boolean(anio),
+      Boolean(color),
+    ].filter(Boolean).length;
+  }, [cedula, nombre, telefono, email, marca, modelo, anio, color]);
+
+  const headerMeta = useMemo(() => {
+    const fecha = new Date()
+      .toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+      .replace('.', '')
+      .toUpperCase();
+    return `${filledCount}/6 CAMPOS · ${fecha}`;
+  }, [filledCount]);
+
+  const clientOk = cedula.trim().length >= 5 && nombre.trim().length > 1;
+  const vehOk =
+    marca.trim().length > 0 && modelo.trim().length > 0 && /^\d{4}$/.test(anio.trim());
+  const canSave = clientOk && vehOk && !loading;
 
   const limpiarClienteEncontrado = () => {
     setClienteId(null);
@@ -140,7 +171,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
       setEmail('');
     }
 
-    setFieldErrors(prev => ({ ...prev, cedula: false }));
+    setFieldErrors((prev) => ({ ...prev, cedula: false }));
     setCedula(cedulaLimpia);
     limpiarClienteEncontrado();
   };
@@ -178,7 +209,6 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
 
   const seleccionarTipoIngreso = (tipo: TipoIngreso) => {
     setTipoIngreso(tipo);
-
     if (tipo === 'particular') {
       setEmpresaId(null);
     }
@@ -209,7 +239,13 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
 
     if (!parsed.success) {
       const issues = parsed.error.issues;
-      const newErrors: FieldErrors = { cedula: false, nombre: false, marca: false, modelo: false, anio: false };
+      const newErrors: FieldErrors = {
+        cedula: false,
+        nombre: false,
+        marca: false,
+        modelo: false,
+        anio: false,
+      };
       const fieldRefMap: Record<FieldErrorKey, TextInput | null> = {
         cedula: cedulaRef.current,
         nombre: nombreRef.current,
@@ -243,13 +279,15 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
       let clienteFinalId = clienteId;
 
       if (clienteFinalId) {
-        const clienteRes = await llamarApi(() => actualizarCliente(clienteFinalId!, {
-          nombre: nombreLimpio,
-          cedula: cedulaLimpia,
-          telefono: telefonoLimpio,
-          email: emailLimpio,
-          empresaId: empresaSeleccionadaId,
-        }));
+        const clienteRes = await llamarApi(() =>
+          actualizarCliente(clienteFinalId!, {
+            nombre: nombreLimpio,
+            cedula: cedulaLimpia,
+            telefono: telefonoLimpio,
+            email: emailLimpio,
+            empresaId: empresaSeleccionadaId,
+          })
+        );
 
         if (!clienteRes.success) {
           Alert.alert('Error', clienteRes.message);
@@ -258,13 +296,15 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
 
         clienteFinalId = clienteRes.data.id;
       } else {
-        const clienteRes = await llamarApi(() => crearCliente({
-          nombre: nombreLimpio,
-          cedula: cedulaLimpia,
-          telefono: telefonoLimpio,
-          email: emailLimpio,
-          empresaId: empresaSeleccionadaId,
-        }));
+        const clienteRes = await llamarApi(() =>
+          crearCliente({
+            nombre: nombreLimpio,
+            cedula: cedulaLimpia,
+            telefono: telefonoLimpio,
+            email: emailLimpio,
+            empresaId: empresaSeleccionadaId,
+          })
+        );
 
         if (!clienteRes.success) {
           Alert.alert('No se pudo registrar', clienteRes.message);
@@ -274,28 +314,33 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
         clienteFinalId = clienteRes.data.id;
       }
 
-      const vehiculoRes = await llamarApi(() => crearVehiculo({
-        placa,
-        marca: marcaLimpia,
-        modelo: modeloLimpio,
-        anio: parseInt(anio, 10),
-        color: colorLimpio,
-        clienteId: clienteFinalId,
-        empresaId: empresaSeleccionadaId,
-      }));
+      const vehiculoRes = await llamarApi(() =>
+        crearVehiculo({
+          placa,
+          marca: marcaLimpia,
+          modelo: modeloLimpio,
+          anio: parseInt(anio, 10),
+          color: colorLimpio,
+          clienteId: clienteFinalId,
+          empresaId: empresaSeleccionadaId,
+        })
+      );
 
-      // Removed debug alert
       if (!vehiculoRes.success) {
         const busqueda = await llamarApi(() => buscarPorPlaca(placa));
         if (busqueda.success) {
           Alert.alert(
             'Vehículo ya registrado',
             'Esta placa ya existe en el sistema. Te llevamos al vehículo.',
-            [{ text: 'OK', onPress: () => navigation.navigate('Vehiculo', { vehiculo: busqueda.data }) }]
+            [
+              {
+                text: 'OK',
+                onPress: () => navigation.navigate('Vehiculo', { vehiculo: busqueda.data }),
+              },
+            ]
           );
           return;
-        }
-        else {
+        } else {
           Alert.alert('No se pudo registrar', vehiculoRes.message);
         }
         return;
@@ -316,178 +361,228 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
     }
   };
 
-  const renderField = (field: FieldConfig) => (
-    <View key={field.label} style={styles.formGroup}>
-      <Text style={styles.label}>{field.label}</Text>
+  // ---------- Renders helpers ----------
+
+  const renderField = ({
+    label,
+    value,
+    setValue,
+    keyboardType,
+    autoCapitalize,
+    placeholder,
+    mono,
+  }: FieldConfig) => (
+    <View key={label} style={styles.formGroup}>
+      <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
-        style={styles.input}
-        value={field.value}
-        onChangeText={field.setValue}
-        keyboardType={field.keyboardType}
-        autoCapitalize={field.autoCapitalize ?? 'none'}
+        style={[styles.input, mono && styles.inputMono]}
+        value={value}
+        onChangeText={setValue}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize ?? 'none'}
         autoCorrect={false}
-        placeholder={`Ingresa ${field.label.toLowerCase().replace(' *', '')}`}
+        placeholder={placeholder ?? `Ingresa ${label.toLowerCase()}`}
         placeholderTextColor={PLACEHOLDER_COLOR}
-        selectionColor="#00c8ff"
+        selectionColor={COLORS.blue}
       />
     </View>
   );
 
-  const renderChipRow = (
-    items: string[],
-    onPress: (value: string) => void,
-    selectedValue?: string
-  ) => (
-    <View style={styles.chipRow}>
-      {items.map(item => {
-        const isSelected = selectedValue?.toLowerCase() === item.toLowerCase();
-        return (
-          <TouchableOpacity
-            key={item}
-            style={[styles.chip, isSelected && styles.chipActive]}
-            onPress={() => onPress(item)}
-          >
-            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>{item}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+  const extraClientFields: FieldConfig[] = [
+    {
+      label: 'Telefono',
+      value: telefono,
+      setValue: setTelefono,
+      keyboardType: 'phone-pad',
+      autoCapitalize: 'none',
+      placeholder: '(300) 000-0000',
+      mono: true,
+    },
+  ];
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#0a0f14' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+          {/* ---------- Header ---------- */}
+          <ScreenHeader
+            onBack={() => navigation.goBack()}
+            title="Nuevo vehículo"
+            meta={headerMeta}
+            accent={COLORS.blue}
+          />
 
-
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Text style={styles.placaBadge}>{placa}</Text>
-            <Text style={styles.subtitle}>Placa no registrada. Completa los datos.</Text>
+          {/* ---------- Hero plate card ---------- */}
+          <View style={styles.heroCard}>
+            <View style={styles.heroBorder} />
+            <View style={styles.heroContent}>
+              <PlateBlock plate={placa} color={COLORS.orange} size="md" />
+              <View style={styles.heroMeta}>
+                <View style={styles.pillWarn}>
+                  <Ionicons name="warning" size={12} color={COLORS.orange} />
+                  <Text style={styles.pillWarnText}>PLACA NO REGISTRADA</Text>
+                </View>
+                <Text style={styles.heroSubtitle}>
+                  Completa los datos para crear la ficha del vehículo.
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <Text style={styles.sectionTitle}>TIPO DE INGRESO</Text>
-          <View style={styles.card}>
-            <View style={styles.toggleRow}>
+          {/* ---------- Tipo de ingreso ---------- */}
+          <Section title="Tipo de ingreso" icon="person-outline">
+            <View style={styles.segment}>
               <TouchableOpacity
+                activeOpacity={0.8}
                 style={[
-                  styles.toggleButton,
-                  tipoIngreso === 'particular' && styles.toggleButtonActive,
+                  styles.segmentBtn,
+                  tipoIngreso === 'particular' && styles.segmentBtnActive,
                 ]}
                 onPress={() => seleccionarTipoIngreso('particular')}
               >
+                <Ionicons
+                  name="person"
+                  size={16}
+                  color={tipoIngreso === 'particular' ? COLORS.textDark : COLORS.textDim}
+                />
                 <Text
                   style={[
-                    styles.toggleText,
-                    tipoIngreso === 'particular' && styles.toggleTextActive,
+                    styles.segmentText,
+                    tipoIngreso === 'particular' && styles.segmentTextActive,
                   ]}
                 >
                   Particular
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
+                activeOpacity={0.8}
                 style={[
-                  styles.toggleButton,
-                  tipoIngreso === 'empresa' && styles.toggleButtonActive,
+                  styles.segmentBtn,
+                  tipoIngreso === 'empresa' && styles.segmentBtnActive,
                 ]}
                 onPress={() => seleccionarTipoIngreso('empresa')}
               >
+                <Ionicons
+                  name="business"
+                  size={16}
+                  color={tipoIngreso === 'empresa' ? COLORS.textDark : COLORS.textDim}
+                />
                 <Text
                   style={[
-                    styles.toggleText,
-                    tipoIngreso === 'empresa' && styles.toggleTextActive,
+                    styles.segmentText,
+                    tipoIngreso === 'empresa' && styles.segmentTextActive,
                   ]}
                 >
                   Empresa
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Section>
 
+          {/* ---------- Empresa (solo si empresa) ---------- */}
           {tipoIngreso === 'empresa' && (
-            <>
-              <Text style={styles.sectionTitle}>EMPRESA</Text>
-              <View style={styles.card}>
-                {cargandoEmpresas ? (
+            <Section title="Empresa" icon="business-outline">
+              {cargandoEmpresas ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color={COLORS.blue} />
                   <Text style={styles.helperText}>Cargando empresas...</Text>
-                ) : empresas.length ? (
-                  <View style={styles.companyList}>
-                    {empresas.map(item => {
-                      const selected = item.id === empresaId;
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
+                </View>
+              ) : empresas.length ? (
+                <View style={styles.companyList}>
+                  {empresas.map((item) => {
+                    const selected = item.id === empresaId;
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.companyChip,
+                          selected && styles.companyChipActive,
+                        ]}
+                        onPress={() => setEmpresaId(item.id)}
+                      >
+                        <Text
                           style={[
-                            styles.companyButton,
-                            selected && styles.companyButtonActive,
+                            styles.companyChipText,
+                            selected && styles.companyChipTextActive,
                           ]}
-                          onPress={() => setEmpresaId(item.id)}
                         >
-                          <Text
-                            style={[
-                              styles.companyButtonText,
-                              selected && styles.companyButtonTextActive,
-                            ]}
-                          >
-                            {item.nombre}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                ) : (
-                  <Text style={styles.helperText}>No hay empresas registradas en la base de datos.</Text>
-                )}
+                          {item.nombre}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : (
+                <Text style={styles.helperText}>
+                  No hay empresas registradas en la base de datos.
+                </Text>
+              )}
 
-                {empresaSeleccionada && (
-                  <Text style={styles.selectionText}>
-                    Facturar a: {empresaSeleccionada.nombre}
-                  </Text>
-                )}
-              </View>
-            </>
+              {empresaSeleccionada && (
+                <Text style={styles.selectionText}>
+                  Facturar a: {empresaSeleccionada.nombre}
+                </Text>
+              )}
+            </Section>
           )}
 
-          <Text style={styles.sectionTitle}>
-            {tipoIngreso === 'empresa' ? 'DATOS DEL CONDUCTOR' : 'DATOS DEL CLIENTE'}
-          </Text>
-          <View style={styles.card}>
+          {/* ---------- Datos del cliente ---------- */}
+          <Section
+            title={tipoIngreso === 'empresa' ? 'Datos del conductor' : 'Datos del cliente'}
+            icon="person-outline"
+          >
+            {/* Cédula + Buscar */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Cedula *</Text>
+              <Text style={styles.fieldLabel}>
+                {tipoIngreso === 'empresa' ? 'NIT / Cédula' : 'Cédula'}
+                <Text style={styles.required}> *</Text>
+              </Text>
               <View style={styles.searchRow}>
                 <TextInput
                   ref={cedulaRef}
-                  style={[styles.input, styles.searchInput, fieldErrors.cedula && styles.inputError]}
+                  style={[
+                    styles.input,
+                    styles.inputMono,
+                    styles.searchInput,
+                    fieldErrors.cedula && styles.inputError,
+                  ]}
                   value={cedula}
-                  onChangeText={(text) => { setFieldErrors(prev => ({ ...prev, cedula: false })); onChangeCedula(text); }}
+                  onChangeText={onChangeCedula}
                   keyboardType="numeric"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  placeholder="Ingresa cedula"
+                  placeholder="Ingresa documento"
                   placeholderTextColor={PLACEHOLDER_COLOR}
-                  selectionColor="#00c8ff"
+                  selectionColor={COLORS.blue}
                 />
                 <TouchableOpacity
+                  activeOpacity={0.85}
                   style={[
                     styles.searchButton,
-                    (!cedula.trim() || estadoCedula === 'buscando') && styles.searchButtonDisabled,
+                    (!cedula.trim() || estadoCedula === 'buscando') &&
+                      styles.searchButtonDisabled,
                   ]}
                   onPress={buscarClienteExistente}
                   disabled={!cedula.trim() || estadoCedula === 'buscando'}
                 >
                   {estadoCedula === 'buscando' ? (
-                    <ActivityIndicator color="#03131b" />
+                    <ActivityIndicator color={COLORS.text} size="small" />
                   ) : (
-                    <Text style={styles.searchButtonText}>Buscar</Text>
+                    <>
+                      <Ionicons name="search" size={14} color={COLORS.text} />
+                      <Text style={styles.searchButtonText}>Buscar</Text>
+                    </>
                   )}
                 </TouchableOpacity>
               </View>
@@ -505,28 +600,37 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
                 </Text>
               ) : null}
             </View>
+
+            {/* Nombre */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre completo *</Text>
+              <Text style={styles.fieldLabel}>
+                {tipoIngreso === 'empresa' ? 'Razón social / Nombre' : 'Nombre completo'}
+                <Text style={styles.required}> *</Text>
+              </Text>
               <TextInput
                 ref={nombreRef}
                 style={[styles.input, fieldErrors.nombre && styles.inputError]}
                 value={nombre}
-                onChangeText={(text) => { setNombre(text); setFieldErrors(prev => ({ ...prev, nombre: false })); }}
+                onChangeText={(text) => {
+                  setNombre(text);
+                  setFieldErrors((prev) => ({ ...prev, nombre: false }));
+                }}
                 autoCapitalize="words"
                 autoCorrect={false}
-                placeholder="Ingresa nombre completo"
+                placeholder={
+                  tipoIngreso === 'empresa' ? 'Empresa S.A.S.' : 'Nombres y apellidos'
+                }
                 placeholderTextColor={PLACEHOLDER_COLOR}
-                selectionColor="#00c8ff"
+                selectionColor={COLORS.blue}
               />
             </View>
 
+            {/* Teléfono */}
+            {extraClientFields.map(renderField)}
 
-            {clientFields.map(renderField)}
-
-            
-            {/* Campo email con autocompletado */}
+            {/* Email con sugerencias */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.fieldLabel}>Email</Text>
               <TextInput
                 style={styles.input}
                 value={email}
@@ -534,83 +638,138 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                placeholder="Ingresa email"
+                placeholder="correo@dominio.com"
                 placeholderTextColor={PLACEHOLDER_COLOR}
-                selectionColor="#00c8ff"
+                selectionColor={COLORS.blue}
               />
               {emailSuggestions.length > 0 && (
                 <View style={styles.emailSuggestions}>
-                  {emailSuggestions.map(suggestion => (
+                  {emailSuggestions.map((suggestion) => (
                     <TouchableOpacity
                       key={suggestion}
                       style={styles.emailSuggestionItem}
                       onPress={() => setEmail(suggestion)}
                     >
+                      <Ionicons name="mail-outline" size={14} color={COLORS.blue} />
                       <Text style={styles.emailSuggestionText}>{suggestion}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               )}
             </View>
-          </View>
+          </Section>
 
-          <Text style={styles.sectionTitle}>DATOS DEL VEHICULO</Text>
-          <View style={styles.card}>
+          {/* ---------- Datos del vehículo ---------- */}
+          <Section title="Datos del vehículo" icon="car-outline">
+            {/* Marca */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Marca *</Text>
+              <Text style={styles.fieldLabel}>
+                Marca<Text style={styles.required}> *</Text>
+              </Text>
               <TextInput
                 ref={marcaRef}
                 style={[styles.input, fieldErrors.marca && styles.inputError]}
                 value={marca}
-                onChangeText={(text) => { setMarca(text); setFieldErrors(prev => ({ ...prev, marca: false })); }}
+                onChangeText={(text) => {
+                  setMarca(text);
+                  setFieldErrors((prev) => ({ ...prev, marca: false }));
+                }}
                 autoCapitalize="words"
                 autoCorrect={false}
                 placeholder="Escribe o toca una marca"
                 placeholderTextColor={PLACEHOLDER_COLOR}
-                selectionColor="#00c8ff"
+                selectionColor={COLORS.blue}
               />
-              {brandSuggestions.length > 0 && renderChipRow(brandSuggestions, (v) => { setMarca(v); setFieldErrors(prev => ({ ...prev, marca: false })); }, marca)}
+              {brandSuggestions.length > 0 && (
+                <ChipRow
+                  items={brandSuggestions}
+                  value={marca}
+                  onPick={(v) => {
+                    setMarca(v);
+                    setFieldErrors((prev) => ({ ...prev, marca: false }));
+                  }}
+                  style={styles.chipRowSpacing}
+                />
+              )}
             </View>
 
+            {/* Modelo */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Modelo *</Text>
+              <Text style={styles.fieldLabel}>
+                Modelo<Text style={styles.required}> *</Text>
+              </Text>
               <TextInput
                 ref={modeloRef}
                 style={[styles.input, fieldErrors.modelo && styles.inputError]}
                 value={modelo}
-                onChangeText={(text) => { setModelo(text); setFieldErrors(prev => ({ ...prev, modelo: false })); }}
+                onChangeText={(text) => {
+                  setModelo(text);
+                  setFieldErrors((prev) => ({ ...prev, modelo: false }));
+                }}
                 autoCapitalize="words"
                 autoCorrect={false}
-                placeholder="Escribe o toca un modelo"
+                placeholder="Ej: WorkStar, 4400, FH…"
                 placeholderTextColor={PLACEHOLDER_COLOR}
-                selectionColor="#00c8ff"
+                selectionColor={COLORS.blue}
               />
               {modelSuggestions.length ? (
-                renderChipRow(modelSuggestions, (v) => { setModelo(v); setFieldErrors(prev => ({ ...prev, modelo: false })); }, modelo)
+                <ChipRow
+                  items={modelSuggestions}
+                  value={modelo}
+                  onPick={(v) => {
+                    setModelo(v);
+                    setFieldErrors((prev) => ({ ...prev, modelo: false }));
+                  }}
+                  style={styles.chipRowSpacing}
+                />
               ) : (
-                <Text style={styles.helperText}>Escribe el modelo si no aparece en la lista.</Text>
+                <Text style={styles.helperText}>
+                  Escribe el modelo si no aparece en la lista.
+                </Text>
               )}
             </View>
 
+            {/* Año */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Año *</Text>
+              <Text style={styles.fieldLabel}>
+                Año<Text style={styles.required}> *</Text>
+              </Text>
               <TextInput
                 ref={anioRef}
-                style={[styles.input, fieldErrors.anio && styles.inputError]}
+                style={[
+                  styles.input,
+                  styles.inputMono,
+                  fieldErrors.anio && styles.inputError,
+                ]}
                 value={anio}
-                onChangeText={(text) => { setAnio(text.replace(/\D/g, '').slice(0, 4)); setFieldErrors(prev => ({ ...prev, anio: false })); }}
+                onChangeText={(text) => {
+                  setAnio(text.replace(/\D/g, '').slice(0, 4));
+                  setFieldErrors((prev) => ({ ...prev, anio: false }));
+                }}
                 keyboardType="numeric"
                 autoCapitalize="none"
                 autoCorrect={false}
                 placeholder="Ingresa el año"
                 placeholderTextColor={PLACEHOLDER_COLOR}
-                selectionColor="#00c8ff"
+                selectionColor={COLORS.blue}
               />
-              {YEAR_SUGGESTIONS.length > 0 && renderChipRow(YEAR_SUGGESTIONS, (v) => { setAnio(v); setFieldErrors(prev => ({ ...prev, anio: false })); }, anio)}
+              {YEAR_SUGGESTIONS.length > 0 && (
+                <ChipRow
+                  items={YEAR_SUGGESTIONS}
+                  value={anio}
+                  onPick={(v) => {
+                    setAnio(v);
+                    setFieldErrors((prev) => ({ ...prev, anio: false }));
+                  }}
+                  mono
+                  style={styles.chipRowSpacing}
+                />
+              )}
             </View>
 
+            {/* Color */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Color</Text>
+              <Text style={styles.fieldLabel}>Color</Text>
               <TextInput
                 style={styles.input}
                 value={color}
@@ -619,248 +778,388 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
                 autoCorrect={false}
                 placeholder="Escribe o toca un color"
                 placeholderTextColor={PLACEHOLDER_COLOR}
-                selectionColor="#00c8ff"
+                selectionColor={COLORS.blue}
               />
-              {renderChipRow(COMMON_COLORS, setColor, color)}
+              <ChipRow
+                items={COMMON_COLORS}
+                value={color}
+                onPick={setColor}
+                withSwatch
+                style={styles.chipRowSpacing}
+              />
             </View>
-          </View>
+          </Section>
 
-          <TouchableOpacity style={styles.btnPrimary} onPress={registrar} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.btnPrimaryText}>REGISTRAR VEHICULO</Text>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          {/* ---------- StickyCTA ---------- */}
+          <StickyCTA>
+            <View style={styles.ctaBar}>
+              <View style={styles.ctaPlate}>
+                <Text style={styles.ctaPlateLabel}>PLACA</Text>
+                <Text style={styles.ctaPlateValue}>{placa}</Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.cancelBtn}
+                onPress={() => navigation.goBack()}
+                disabled={loading}
+              >
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
+                onPress={registrar}
+                disabled={!canSave}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.black} size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={16}
+                      color={canSave ? COLORS.black : COLORS.textMuted}
+                    />
+                    <Text
+                      style={[
+                        styles.saveBtnText,
+                        !canSave && styles.saveBtnTextDisabled,
+                      ]}
+                    >
+                      Registrar vehículo
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </StickyCTA>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#0a0f14',
+    backgroundColor: COLORS.bg,
   },
   content: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 40,
   },
-  header: {
-    marginBottom: 20,
-  },
-  placaBadge: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: '#ff6b2b',
-    letterSpacing: 6,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#7f9bb4',
-  },
-  sectionTitle: {
-    fontSize: 10,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: '#5a7a99',
-    marginBottom: 10,
-    fontWeight: '700',
-  },
-  card: {
-    backgroundColor: '#0d1826',
-    borderWidth: 1,
-    borderColor: '#274055',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-  },
-  toggleRow: {
+
+  // Hero plate card
+  heroCard: {
     flexDirection: 'row',
-  },
-  toggleButton: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: 12,
+    backgroundColor: COLORS.bg2,
     borderWidth: 1,
-    borderColor: '#274055',
-    backgroundColor: '#182635',
+    borderColor: COLORS.line,
+    borderRadius: 16,
+    marginBottom: 24,
+    overflow: 'hidden',
+  },
+  heroBorder: {
+    width: 4,
+    backgroundColor: COLORS.orange,
+  },
+  heroContent: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 20,
+    padding: 22,
+  },
+  heroMeta: {
+    flex: 1,
+    minWidth: 160,
+  },
+  pillWarn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.orangeSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  pillWarnText: {
+    color: COLORS.orange,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: COLORS.textDim,
+    marginTop: 8,
+    lineHeight: 18,
+  },
+
+  // Segment (Particular / Empresa)
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    gap: 8,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    borderRadius: 8,
   },
-  toggleButtonActive: {
-    backgroundColor: '#00c8ff',
-    borderColor: '#00c8ff',
+  segmentBtnActive: {
+    backgroundColor: COLORS.blue,
   },
-  toggleText: {
-    color: '#d8e7f4',
-    fontSize: 15,
+  segmentText: {
+    fontSize: 14,
+    color: COLORS.textDim,
+    fontWeight: '500',
+  },
+  segmentTextActive: {
+    color: COLORS.textDark,
     fontWeight: '700',
   },
-  toggleTextActive: {
-    color: '#03131b',
-  },
+
+  // Empresa list
   companyList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 8,
   },
-  companyButton: {
-    minHeight: 48,
+  companyChip: {
+    minHeight: 40,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#274055',
-    backgroundColor: '#182635',
+    borderColor: COLORS.line,
+    backgroundColor: COLORS.bg3,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
-    marginBottom: 10,
   },
-  companyButtonActive: {
-    backgroundColor: '#00c8ff',
-    borderColor: '#00c8ff',
+  companyChipActive: {
+    backgroundColor: COLORS.blueSoft,
+    borderColor: COLORS.blue,
   },
-  companyButtonText: {
-    color: '#d8e7f4',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  companyButtonTextActive: {
-    color: '#03131b',
-  },
-  helperText: {
-    color: '#7f9bb4',
+  companyChipText: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 8,
-  },
-  selectionText: {
-    color: '#8edcff',
-    fontSize: 13,
-    marginTop: 6,
-  },
-  formGroup: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: '#7f9bb4',
-    marginBottom: 6,
     fontWeight: '600',
   },
-  searchRow: {
+  companyChipTextActive: {
+    color: COLORS.blue,
+    fontWeight: '700',
+  },
+  loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+  },
+  helperText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    marginTop: 6,
+  },
+  selectionText: {
+    color: COLORS.blue,
+    fontSize: 12,
+    marginTop: 10,
+    fontWeight: '600',
+  },
+
+  // Form
+  formGroup: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: COLORS.textDim,
+    marginBottom: 6,
+  },
+  required: {
+    color: COLORS.orange,
+  },
+  input: {
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: COLORS.text,
+    minHeight: 48,
+  },
+  inputMono: {
+    fontFamily: 'monospace',
+    letterSpacing: 0.5,
+  },
+  inputError: {
+    borderColor: COLORS.danger,
+    borderWidth: 1.5,
+  },
+
+  // Buscar row
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    marginRight: 10,
-  },
-  input: {
-    backgroundColor: '#182635',
-    borderWidth: 1,
-    borderColor: '#274055',
-    borderRadius: 10,
-    padding: 12,
-    color: '#e8f0f8',
-    fontSize: 15,
-    justifyContent: 'center',
-  },
-  inputError: {
-    borderColor: '#ff3b30',
-    borderWidth: 1.5,
   },
   searchButton: {
-    minHeight: 48,
-    minWidth: 92,
-    borderRadius: 10,
-    backgroundColor: '#00c8ff',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    gap: 6,
+    minHeight: 48,
+    minWidth: 96,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: COLORS.bg3,
+    borderWidth: 1,
+    borderColor: COLORS.line,
   },
   searchButtonDisabled: {
-    opacity: 0.45,
+    opacity: 0.5,
   },
   searchButtonText: {
-    color: '#03131b',
+    color: COLORS.text,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   lookupMessage: {
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 8,
+    color: COLORS.textDim,
   },
   lookupMessageSuccess: {
-    color: '#59d98e',
+    color: COLORS.success,
   },
   lookupMessageInfo: {
-    color: '#8edcff',
+    color: COLORS.blue,
   },
   lookupMessageError: {
-    color: '#ff8b7a',
+    color: COLORS.danger,
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+
+  // Chip row spacing within a field
+  chipRowSpacing: {
     marginTop: 10,
   },
-  chip: {
-    minHeight: 36,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    backgroundColor: '#111c27',
-    borderWidth: 1,
-    borderColor: '#274055',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  chipActive: {
-    backgroundColor: '#00c8ff',
-    borderColor: '#00c8ff',
-  },
-  chipText: {
-    color: '#d8e7f4',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  chipTextActive: {
-    color: '#03131b',
-  },
-  btnPrimary: {
-    backgroundColor: '#00c8ff',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  btnPrimaryText: {
-    color: '#000',
-    fontWeight: '700',
-    fontSize: 15,
-    letterSpacing: 1,
-  },
+
+  // Email suggestions
   emailSuggestions: {
-    backgroundColor: '#111d27', 
+    backgroundColor: COLORS.bg3,
     borderWidth: 1,
-    borderColor: '#274055',
+    borderColor: COLORS.line,
     borderRadius: 10,
-    marginTop: 4,
+    marginTop: 6,
     overflow: 'hidden',
   },
   emailSuggestionItem: {
-    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a2b39',
+    borderBottomColor: COLORS.lineSoft,
   },
   emailSuggestionText: {
-    color: '#00c8ff',
+    color: COLORS.blue,
     fontSize: 14,
+    fontWeight: '500',
+  },
+
+  // StickyCTA bar
+  ctaBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.bg2,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 12,
+    padding: 10,
+  },
+  ctaPlate: {
+    flex: 1,
+    paddingHorizontal: 10,
+    minWidth: 80,
+  },
+  ctaPlateLabel: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    letterSpacing: 1.2,
+    fontWeight: '700',
+  },
+  ctaPlateValue: {
+    fontFamily: 'monospace',
+    fontSize: 16,
+    color: COLORS.orange,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  cancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    backgroundColor: 'transparent',
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtnText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.orange,
+    minHeight: 48,
+  },
+  saveBtnDisabled: {
+    backgroundColor: COLORS.bg3,
+    opacity: 0.6,
+  },
+  saveBtnText: {
+    color: COLORS.black,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  saveBtnTextDisabled: {
+    color: COLORS.textMuted,
   },
 });
