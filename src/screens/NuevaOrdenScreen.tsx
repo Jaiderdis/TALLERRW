@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, TextInput
@@ -6,19 +6,21 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { Vehiculo, Tecnico, CatalogoServicio } from '../types';
-import { obtenerTecnicos } from '../api/tecnicos';
-import { obtenerCatalogo } from '../api/catalogo';
+import { Vehiculo } from '../types';
 import { crearOrden } from '../api/ordenes';
 import { llamarApi } from '../api/apiHelper';
+import { useNuevaOrdenData } from '../hooks/useNuevaOrdenData';
+import { nuevaOrdenSchema } from '../schemas/nuevaOrden';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'NuevaOrden'>;
   route: RouteProp<RootStackParamList, 'NuevaOrden'>;
 };
 
-const PRIORIDADES = ['Normal', 'Urgente', 'Inmediato'];
-const PRIORIDAD_COLORS: Record<string, string> = {
+const PRIORIDADES = ['Normal', 'Urgente', 'Inmediato'] as const;
+type Prioridad = typeof PRIORIDADES[number];
+
+const PRIORIDAD_COLORS: Record<Prioridad, string> = {
   Normal: '#00e096', Urgente: '#ffb800', Inmediato: '#ff6b2b'
 };
 
@@ -29,35 +31,18 @@ interface Errores {
 }
 
 export default function NuevaOrdenScreen({ navigation, route }: Props) {
-  const { vehiculo }: { vehiculo: Vehiculo } = route.params;
-  const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
-  const [catalogo, setCatalogo] = useState<CatalogoServicio[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { vehiculo } = route.params as { vehiculo: Vehiculo };
+  const { tecnicos, catalogo, cargando: loading } = useNuevaOrdenData();
   const [guardando, setGuardando] = useState(false);
   const [errores, setErrores] = useState<Errores>({});
 
   const [tecnicoId, setTecnicoId] = useState<number | null>(null);
   const [serviciosIds, setServiciosIds] = useState<number[]>([]);
-  const [prioridad, setPrioridad] = useState('Normal');
+  const [prioridad, setPrioridad] = useState<Prioridad>('Normal');
   const [km, setKm] = useState('');
   const [observaciones, setObservaciones] = useState('');
 
-  const scrollRef = React.useRef<ScrollView>(null);
-
-  useEffect(() => {
-    const cargar = async () => {
-      try {
-        const [t, c] = await Promise.all([ llamarApi(() => obtenerTecnicos()), llamarApi(() => obtenerCatalogo()) ]);
-        setTecnicos(t.data);
-        setCatalogo(c.data);
-      } catch {
-        // error de conexión
-      } finally {
-        setLoading(false);
-      }
-    };
-    cargar();
-  }, []);
+  const scrollRef = useRef<ScrollView>(null);
 
   const toggleServicio = (id: number) => {
     setServiciosIds(prev =>
@@ -67,24 +52,28 @@ export default function NuevaOrdenScreen({ navigation, route }: Props) {
   };
 
   const validar = (): boolean => {
-    const nuevosErrores: Errores = {};
+    const parsed = nuevaOrdenSchema.safeParse({
+      serviciosIds,
+      tecnicoId: tecnicoId ?? undefined,
+      prioridad,
+      km,
+      observaciones,
+    });
 
-    if (serviciosIds.length === 0)
-      nuevosErrores.servicios = 'Selecciona al menos un servicio';
-
-    if (!tecnicoId)
-      nuevosErrores.tecnico = 'Asigna un técnico';
-
-    if (!km || isNaN(parseInt(km)))
-      nuevosErrores.km = 'Ingresa un kilometraje válido';
-
-    setErrores(nuevosErrores);
-
-    // Si hay errores hacer scroll al primero
-    if (Object.keys(nuevosErrores).length > 0) {
+    if (!parsed.success) {
+      const nuevosErrores: Errores = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof Errores;
+        if (!nuevosErrores[key]) {
+          nuevosErrores[key] = issue.message;
+        }
+      }
+      setErrores(nuevosErrores);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
       return false;
     }
+
+    setErrores({});
     return true;
   };
 
@@ -92,14 +81,14 @@ export default function NuevaOrdenScreen({ navigation, route }: Props) {
     if (!validar()) return;
 
     const body = {
-      vehiculoId: Number(vehiculo.id),
-      tecnicoId: Number(tecnicoId),
-      clienteId: Number(vehiculo.cliente.id),
+      vehiculoId: vehiculo.id,
+      tecnicoId: tecnicoId as number,
+      clienteId: vehiculo.cliente.id,
       empresaId: vehiculo.empresa?.id ?? null,
       prioridad,
       kmIngreso: parseInt(km.trim(), 10),
-      observaciones: observaciones ?? '',
-      serviciosIds: serviciosIds.map(Number),
+      observaciones: observaciones || '',
+      serviciosIds,
     };
 
     setGuardando(true);

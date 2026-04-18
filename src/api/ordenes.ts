@@ -1,17 +1,10 @@
 import api from './config';
-import { ApiResponse, Orden } from '../types';
+import { ApiResponse, Orden, CrearOrdenRequest } from '../types';
 import { AxiosResponse } from 'axios';
 
-export const crearOrden = async (data: {
-  vehiculoId: number;
-  tecnicoId: number;
-  clienteId: number;
-  empresaId?: number | null;
-  prioridad: string;
-  kmIngreso: number;
-  observaciones: string;
-  serviciosIds: number[];
-}): Promise<AxiosResponse<ApiResponse<Orden>>> => {
+export const crearOrden = async (
+  data: CrearOrdenRequest
+): Promise<AxiosResponse<ApiResponse<Orden>>> => {
   return api.post('/ordenes', data);
 };
 

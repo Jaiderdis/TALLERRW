@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, ActivityIndicator, Alert, RefreshControl
+  TouchableOpacity, ActivityIndicator, RefreshControl
 } from 'react-native';
-import { obtenerOrdenesPendientes, actualizarEstado } from '../api/ordenes';
-import { Orden } from '../types';
-import { llamarApi } from '../api/apiHelper';
+import { useOrdenesHoy } from '../hooks/useOrdenesHoy';
 
 const ESTADO_COLORS: Record<string, string> = {
   EnEspera: '#ffb800', EnProceso: '#00c8ff', Completada: '#00e096', Cancelada: '#ff6b2b'
@@ -15,50 +13,11 @@ const ESTADO_LABELS: Record<string, string> = {
 };
 
 export default function OrdenesHoyScreen() {
-  const [ordenes, setOrdenes] = useState<Orden[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { ordenes, loading, refreshing, cargar, onRefresh, cambiarEstado } = useOrdenesHoy();
 
-  const cargar = async () => {
-    try {
-      const result = await llamarApi(() => obtenerOrdenesPendientes());
-      setOrdenes(result.data);
-    } catch {
-      Alert.alert('Error', 'No se pudieron cargar las órdenes pendientes');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => { cargar(); }, []);
-
-  const cambiarEstado = async (orden: Orden) => {
-    const siguientes: Record<string, string> = {
-      EnEspera: 'EnProceso', EnProceso: 'Completada'
-    };
-    const siguiente = siguientes[orden.estado];
-    if (!siguiente) return;
-
-    Alert.alert(
-      'Cambiar estado',
-      `¿Cambiar a "${ESTADO_LABELS[siguiente]}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            try {
-              await actualizarEstado(orden.id, siguiente);
-              cargar();
-            } catch {
-              Alert.alert('Error', 'No se pudo actualizar el estado');
-            }
-          }
-        }
-      ]
-    );
-  };
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
 
   if (loading) return (
     <View style={styles.centered}>
@@ -70,7 +29,7 @@ export default function OrdenesHoyScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 100 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); cargar(); }} tintColor="#00c8ff" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00c8ff" />}
     >
       <Text style={styles.fecha}>
         {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

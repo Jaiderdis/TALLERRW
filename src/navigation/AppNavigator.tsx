@@ -7,12 +7,13 @@ import NuevoVehiculoScreen from '../screens/NuevoVehiculoScreen';
 import NuevaOrdenScreen from '../screens/NuevaOrdenScreen';
 import FichaRevisionScreen from '../screens/FichaRevisionScreen';
 import OrdenesHoyScreen from '../screens/OrdenesHoyScreen';
+import { Vehiculo } from '../types';
 
 export type RootStackParamList = {
     BuscarPlaca: undefined;
-    Vehiculo: { vehiculo: any };
+    Vehiculo: { vehiculo: Vehiculo };
     NuevoVehiculo: { placa: string };
-    NuevaOrden: { vehiculo: any };
+    NuevaOrden: { vehiculo: Vehiculo };
     FichaRevision: { planId: number; ordenId: number; vehiculoId: number };
     OrdenesHoy: undefined;
 };

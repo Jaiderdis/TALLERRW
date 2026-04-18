@@ -7,6 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Vehiculo, PlanRevision } from '../types';
+import { COLORS } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Vehiculo'>;
@@ -19,17 +20,17 @@ export default function VehiculoScreen({ navigation, route }: Props) {
   const total = vehiculo.planesRevision.length;
   const tienePlan = total > 0;
 
-  const estadoColor = (estado: string) => {
-    if (estado === 'Bien') return '#00e096';
-    if (estado === 'Regular') return '#ffb800';
-    return '#ff6b2b';
+  const estadoColor = (estado: string): string => {
+    if (estado === 'Bien') return COLORS.success;
+    if (estado === 'Regular') return COLORS.warning;
+    return COLORS.danger;
   };
 
-  const planColor = (p: PlanRevision, index: number) => {
-    if (p.estado === 'Completada') return '#00e096';
+  const planColor = (p: PlanRevision): string => {
+    if (p.estado === 'Completada') return COLORS.success;
     const primero = vehiculo.planesRevision.find(x => x.estado === 'Pendiente');
-    if (primero?.id === p.id) return '#00c8ff';
-    return '#5a7a99';
+    if (primero?.id === p.id) return COLORS.accent;
+    return COLORS.textSecondary;
   };
 
   return (
@@ -86,10 +87,10 @@ export default function VehiculoScreen({ navigation, route }: Props) {
             </View>
             {/* Barra progreso */}
             <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${(hechas / total) * 100}%` as any }]} />
+              <View style={[styles.progressFill, { width: `${(hechas / total) * 100}%` as `${number}%` }]} />
             </View>
-            {vehiculo.planesRevision.map((p, i) => {
-              const color = planColor(p, i);
+            {vehiculo.planesRevision.map((p) => {
+              const color = planColor(p);
               const esSiguiente = p.estado === 'Pendiente' &&
                 vehiculo.planesRevision.find(x => x.estado === 'Pendiente')?.id === p.id;
               return (

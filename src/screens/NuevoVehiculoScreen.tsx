@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,9 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { actualizarCliente, buscarPorCedula, crearCliente } from '../api/clientes';
-import { obtenerEmpresas } from '../api/empresas';
 import { buscarPorPlaca, crearVehiculo } from '../api/vehiculos';
-import { Empresa } from '../types';
 import {
   COMMON_COLORS,
   getSuggestedYears,
@@ -28,6 +26,8 @@ import {
   MODELS_BY_BRAND,
 } from '../constants/vehicleCatalog';
 import { llamarApi } from '../api/apiHelper';
+import { useEmpresas } from '../hooks/useEmpresas';
+import { nuevoVehiculoSchema } from '../schemas/nuevoVehiculo';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'NuevoVehiculo'>;
@@ -45,27 +45,34 @@ type FieldConfig = {
 type TipoIngreso = 'particular' | 'empresa';
 type EstadoCedula = 'idle' | 'buscando' | 'encontrado' | 'nuevo' | 'error';
 
+// Claves validables del formulario
+type FieldErrorKey = 'cedula' | 'nombre' | 'marca' | 'modelo' | 'anio';
+type FieldErrors = Record<FieldErrorKey, boolean>;
+
 const PLACEHOLDER_COLOR = '#7f9bb4';
+
+// Constantes estáticas definidas fuera del componente para evitar recreación en cada render
+const EMAIL_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
+const YEAR_SUGGESTIONS = getSuggestedYears();
 
 export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   const { placa } = route.params;
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [fieldErrors, setFieldErrors] = useState({
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({
     cedula: false,
     nombre: false,
     marca: false,
     modelo: false,
     anio: false,
   });
-  const cedulaRef = React.useRef<TextInput>(null);
-  const nombreRef = React.useRef<TextInput>(null);
-  const marcaRef = React.useRef<TextInput>(null);
-  const modeloRef = React.useRef<TextInput>(null);
-  const anioRef = React.useRef<TextInput>(null);
+  const cedulaRef = useRef<TextInput>(null);
+  const nombreRef = useRef<TextInput>(null);
+  const marcaRef = useRef<TextInput>(null);
+  const modeloRef = useRef<TextInput>(null);
+  const anioRef = useRef<TextInput>(null);
   const [tipoIngreso, setTipoIngreso] = useState<TipoIngreso>('particular');
-  const [empresas, setEmpresas] = useState<Empresa[]>([]);
-  const [cargandoEmpresas, setCargandoEmpresas] = useState(true);
+  const { empresas, cargando: cargandoEmpresas } = useEmpresas();
   const [empresaId, setEmpresaId] = useState<number | null>(null);
 
   const [nombre, setNombre] = useState('');
@@ -81,24 +88,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
   const [anio, setAnio] = useState('');
   const [color, setColor] = useState('');
 
-  useEffect(() => {
-    const cargarEmpresas = async () => {
-      setCargandoEmpresas(true);
-
-      try {
-        const response = await llamarApi(() => obtenerEmpresas());
-        if (response.success) {
-          setEmpresas(response.data);
-        }
-      } catch (error) {
-        setEmpresas([]);
-      } finally {
-        setCargandoEmpresas(false);
-      }
-    };
-
-    void cargarEmpresas();
-  }, []);
+  // Las empresas se cargan mediante el hook useEmpresas (sin useEffect local)
 
   const empresaSeleccionada = useMemo(
     () => empresas.find(item => item.id === empresaId) ?? null,
@@ -123,14 +113,11 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
     return filtered.slice(0, 10);
   }, [marca, modelo]);
 
-  const yearSuggestions = useMemo(() => getSuggestedYears(), []);
-  const EMAIL_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
   const clientFields = useMemo<FieldConfig[]>(
     () => [
       { label: 'Telefono', value: telefono, setValue: setTelefono, keyboardType: 'phone-pad', autoCapitalize: 'none' },
-      // { label: 'Email', value: email, setValue: setEmail, keyboardType: 'email-address', autoCapitalize: 'none' },
     ],
-    [email, telefono]
+    [telefono]
   );
 
   const emailSuggestions = useMemo(() => {
@@ -209,20 +196,39 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
     const colorLimpio = color.trim();
     const empresaSeleccionadaId = tipoIngreso === 'empresa' ? empresaId : null;
 
-    // Validate required fields and show missing ones
-    const errors = { cedula: false, nombre: false, marca: false, modelo: false, anio: false };
-    let firstEmpty: TextInput | null = null;
+    // Validación con Zod
+    const parsed = nuevoVehiculoSchema.safeParse({
+      cedula: cedulaLimpia,
+      nombre: nombreLimpio,
+      marca: marcaLimpia,
+      modelo: modeloLimpio,
+      anio: anio.trim(),
+      color: colorLimpio,
+      email: emailLimpio || undefined,
+    });
 
-    if (!cedulaLimpia) { errors.cedula = true; if (!firstEmpty) firstEmpty = cedulaRef.current; }
-    if (!nombreLimpio) { errors.nombre = true; if (!firstEmpty) firstEmpty = nombreRef.current; }
-    if (!marcaLimpia) { errors.marca = true; if (!firstEmpty) firstEmpty = marcaRef.current; }
-    if (!modeloLimpio) { errors.modelo = true; if (!firstEmpty) firstEmpty = modeloRef.current; }
-    if (!anio.trim()) { errors.anio = true; if (!firstEmpty) firstEmpty = anioRef.current; }
+    if (!parsed.success) {
+      const issues = parsed.error.issues;
+      const newErrors: FieldErrors = { cedula: false, nombre: false, marca: false, modelo: false, anio: false };
+      const fieldRefMap: Record<FieldErrorKey, TextInput | null> = {
+        cedula: cedulaRef.current,
+        nombre: nombreRef.current,
+        marca: marcaRef.current,
+        modelo: modeloRef.current,
+        anio: anioRef.current,
+      };
+      let firstRef: TextInput | null = null;
 
-    setFieldErrors(errors);
+      for (const issue of issues) {
+        const key = issue.path[0] as FieldErrorKey;
+        if (key in newErrors) {
+          newErrors[key] = true;
+          if (!firstRef) firstRef = fieldRefMap[key];
+        }
+      }
 
-    if (Object.values(errors).some(Boolean)) {
-      firstEmpty?.focus();
+      setFieldErrors(newErrors);
+      firstRef?.focus();
       return;
     }
 
@@ -290,7 +296,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
           return;
         }
         else {
-          Alert.alert('No se pudo registrars', vehiculoRes.message);
+          Alert.alert('No se pudo registrar', vehiculoRes.message);
         }
         return;
       }
@@ -301,8 +307,9 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
           onPress: () => navigation.navigate('Vehiculo', { vehiculo: vehiculoRes.data }),
         },
       ]);
-    } catch (error) {
-      const mensajeError = (error as any)?.response?.data?.message ?? (error as any)?.message ?? 'Error inesperado, intenta de nuevo';
+    } catch (error: unknown) {
+      const mensajeError =
+        error instanceof Error ? error.message : 'Error inesperado, intenta de nuevo';
       Alert.alert('No se pudo registrar', mensajeError);
     } finally {
       setLoading(false);
@@ -599,7 +606,7 @@ export default function NuevoVehiculoScreen({ navigation, route }: Props) {
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 selectionColor="#00c8ff"
               />
-              {yearSuggestions.length > 0 && renderChipRow(yearSuggestions, (v) => { setAnio(v); setFieldErrors(prev => ({ ...prev, anio: false })); }, anio)}
+              {YEAR_SUGGESTIONS.length > 0 && renderChipRow(YEAR_SUGGESTIONS, (v) => { setAnio(v); setFieldErrors(prev => ({ ...prev, anio: false })); }, anio)}
             </View>
 
             <View style={styles.formGroup}>
@@ -834,7 +841,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   btnPrimaryText: {
-    // existing
+    color: '#000',
+    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 1,
   },
   emailSuggestions: {
     backgroundColor: '#111d27', 

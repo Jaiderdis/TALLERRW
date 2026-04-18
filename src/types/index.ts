@@ -1,3 +1,59 @@
+// ─── Request DTOs ─────────────────────────────────────────────────────────────
+
+export interface CrearClienteRequest {
+  nombre: string;
+  cedula: string;
+  telefono: string;
+  email: string;
+  empresaId?: number | null;
+}
+
+export interface ActualizarClienteRequest extends CrearClienteRequest {
+  // igual que crear — se extiende por claridad y uso con actualizarCliente(id, dto)
+}
+
+export interface CrearVehiculoRequest {
+  placa: string;
+  marca: string;
+  modelo: string;
+  anio: number;
+  color: string;
+  clienteId: number | null;
+  empresaId?: number | null;
+}
+
+export interface CrearOrdenRequest {
+  vehiculoId: number;
+  tecnicoId: number;
+  clienteId: number;
+  empresaId?: number | null;
+  prioridad: string;
+  kmIngreso: number;
+  observaciones: string;
+  serviciosIds: number[];
+}
+
+export interface RegistrarFichaRequest {
+  planId: number;
+  ordenId: number;
+  tecnicoId: number;
+  presionAlta: number;
+  presionBaja: number;
+  tempSalida: number;
+  gasTipo: string;
+  gasCantidad?: number | null;
+  notas: string;
+  componentes: ComponenteRevisionRequest[];
+}
+
+export interface ComponenteRevisionRequest {
+  componente: string;
+  estado: string;
+  observacion: string;
+}
+
+// ─── Domain entities ───────────────────────────────────────────────────────────
+
 export interface Tecnico {
   id: number;
   nombre: string;
