@@ -7,15 +7,19 @@ import NuevoVehiculoScreen from '../screens/NuevoVehiculoScreen';
 import NuevaOrdenScreen from '../screens/NuevaOrdenScreen';
 import FichaRevisionScreen from '../screens/FichaRevisionScreen';
 import OrdenesHoyScreen from '../screens/OrdenesHoyScreen';
-import { Vehiculo } from '../types';
+import IniciarRevisionScreen from '../screens/IniciarRevisionScreen';
+import OrdenDetalleScreen from '../screens/OrdenDetalleScreen';
+import { Vehiculo, Orden } from '../types';
 
 export type RootStackParamList = {
     BuscarPlaca: undefined;
     Vehiculo: { vehiculo: Vehiculo };
     NuevoVehiculo: { placa: string };
     NuevaOrden: { vehiculo: Vehiculo };
-    FichaRevision: { planId: number; ordenId: number; vehiculoId: number };
+    FichaRevision: { planId: number; ordenId: number; vehiculoId: number; tecnicoId: number };
     OrdenesHoy: undefined;
+    IniciarRevision: { planId: number; vehiculo: Vehiculo };
+    OrdenDetalle: { orden: Orden };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -60,6 +64,16 @@ export default function AppNavigator() {
                 <Stack.Screen
                     name="OrdenesHoy"
                     component={OrdenesHoyScreen}
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="IniciarRevision"
+                    component={IniciarRevisionScreen}
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="OrdenDetalle"
+                    component={OrdenDetalleScreen}
                     options={{ headerShown: false }}
                 />
             </Stack.Navigator>

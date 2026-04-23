@@ -12,5 +12,6 @@ namespace Domain.Interfaces.Repositories
         Task<IEnumerable<OrdenServicio>> ObtenerPendientesAsync();
         Task<OrdenServicio> CrearAsync(OrdenServicio orden);
         Task<OrdenServicio> ActualizarAsync(OrdenServicio orden);
+        Task<bool> EliminarDetalleAsync(int ordenId, int detalleId);
     }
 }

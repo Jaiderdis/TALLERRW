@@ -10,5 +10,6 @@ namespace Domain.Interfaces.Repositories
         Task<FichaRevision?> ObtenerPorIdAsync(int id);
         Task<FichaRevision?> ObtenerPorPlanAsync(int planId);
         Task<FichaRevision> CrearAsync(FichaRevision ficha);
+        void Agregar(FichaRevision ficha);
     }
 }

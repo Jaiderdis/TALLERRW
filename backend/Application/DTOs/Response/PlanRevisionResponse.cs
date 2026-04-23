@@ -12,5 +12,6 @@ public class PlanRevisionResponse
     public DateTime? FechaProgramada { get; set; }
     public DateTime? FechaCompletada { get; set; }
     public bool TieneFicha { get; set; }
+    public bool OrigenCompletada { get; set; }
     public FichaRevisionResponse? Ficha { get; set; }
 }

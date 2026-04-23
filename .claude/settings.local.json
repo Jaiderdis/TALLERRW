@@ -8,7 +8,12 @@
       "Bash(cmd *)",
       "Bash(dotnet run *)",
       "Bash(ipconfig)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet tool *)",
+      "Bash(python3 *)",
+      "Bash(node *)"
     ]
   }
 }

@@ -30,6 +30,11 @@ namespace Domain.Entities
         public int? EmpresaId { get; set; }
         public Empresa? Empresa { get; set; }
 
+        // Revisión de plan — indica que esta orden es una visita de seguimiento
+        public bool EsRevision { get; set; } = false;
+        public int? PlanRevisionId { get; set; }
+        public PlanRevision? PlanRevision { get; set; }
+
         // Navegación
         public ICollection<DetalleOrden> Detalles { get; set; } = [];
         public ICollection<FichaRevision> Fichas { get; set; } = [];

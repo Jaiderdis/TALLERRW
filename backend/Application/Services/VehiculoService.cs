@@ -62,8 +62,8 @@ public class VehiculoService : IVehiculoService
         Modelo = v.Modelo,
         Anio = v.Anio,
         Color = v.Color,
-        TotalVisitas = v.Ordenes?.Count ?? 0,
-        UltimaVisita = v.Ordenes?.OrderByDescending(o => o.FechaIngreso).FirstOrDefault()?.FechaIngreso,
+        TotalVisitas = v.TotalOrdenes,
+        UltimaVisita = v.UltimaOrdenFecha,
         Cliente = v.Cliente is null ? null! : new ClienteResponse
         {
             Id = v.Cliente.Id,
@@ -90,7 +90,8 @@ public class VehiculoService : IVehiculoService
             Estado = p.Estado.ToString(),
             FechaProgramada = p.FechaProgramada,
             FechaCompletada = p.FechaCompletada,
-            TieneFicha = p.Ficha is not null
+            TieneFicha = p.Ficha is not null,
+            OrigenCompletada = p.OrdenOrigen?.Estado == Domain.Enums.EstadoOrden.Completada
         }).ToList() ?? []
     };
 }

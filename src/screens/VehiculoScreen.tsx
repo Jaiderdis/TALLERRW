@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert
+  TouchableOpacity, Alert, ActivityIndicator
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Vehiculo, PlanRevision } from '../types';
 import { COLORS } from '../theme';
+import { llamarApi } from '../api/apiHelper';
+import { buscarPorPlaca } from '../api/vehiculos';
 import ScreenHeader from '../components/ScreenHeader';
 import PlateBlock from '../components/PlateBlock';
 import StickyCTA from '../components/StickyCTA';
@@ -50,7 +53,22 @@ function diasDesde(iso: string | null): string | null {
 }
 
 export default function VehiculoScreen({ navigation, route }: Props) {
-  const vehiculo: Vehiculo = route.params.vehiculo;
+  const [vehiculo, setVehiculo] = useState<Vehiculo>(route.params.vehiculo);
+  const [recargando, setRecargando] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const recargar = async () => {
+        setRecargando(true);
+        const result = await llamarApi(() => buscarPorPlaca(vehiculo.placa));
+        if (active && result.success && result.data) setVehiculo(result.data);
+        if (active) setRecargando(false);
+      };
+      void recargar();
+      return () => { active = false; };
+    }, [vehiculo.placa])
+  );
 
   const primeraVisita = vehiculo.totalVisitas <= 1;
 
@@ -60,11 +78,20 @@ export default function VehiculoScreen({ navigation, route }: Props) {
   const hechas = planes.filter(p => p.estado === 'Completada').length;
   const tienePlan = total > 0;
   const progresoPct = total > 0 ? (hechas / total) * 100 : 0;
-  const primerPendienteId = planes.find(p => p.estado === 'Pendiente')?.id ?? null;
+
+  const puedeRegistrar = (p: PlanRevision): boolean => {
+    if (p.estado !== 'Pendiente') return false;
+    if (!p.origenCompletada) return false;
+    // Todas las revisiones anteriores deben estar Completadas
+    return planes
+      .filter(prev => prev.numero < p.numero)
+      .every(prev => prev.estado === 'Completada');
+  };
 
   const estadoPaso = (p: PlanRevision): PasoEstado => {
     if (p.estado === 'Completada') return 'done';
-    if (p.id === primerPendienteId) return 'active';
+    if (p.estado === 'EnProceso') return 'active';
+    if (puedeRegistrar(p)) return 'active';
     return 'locked';
   };
 
@@ -83,10 +110,8 @@ export default function VehiculoScreen({ navigation, route }: Props) {
     }
   };
 
-  const registrarPaso = (_p: PlanRevision) => {
-    // TODO: navegar a FichaRevision cuando la pantalla esté lista.
-    // navigation.navigate('FichaRevision', { planId: p.id, ordenId: ?, vehiculoId: vehiculo.id });
-    Alert.alert('Registrar revisión', 'La ficha de revisión estará disponible próximamente.');
+  const registrarPaso = (p: PlanRevision) => {
+    navigation.navigate('IniciarRevision', { planId: p.id, vehiculo });
   };
 
   // TODO: backend no devuelve un contador separado "visitas en taller"; usamos totalVisitas.
@@ -104,7 +129,7 @@ export default function VehiculoScreen({ navigation, route }: Props) {
         <ScreenHeader
           onBack={() => navigation.goBack()}
           title="Ficha del vehículo"
-          meta={`FICHA · ${vehiculo.placa}`}
+          meta={recargando ? 'Actualizando...' : `FICHA · ${vehiculo.placa}`}
         />
 
         {/* Hero card */}
@@ -255,14 +280,16 @@ export default function VehiculoScreen({ navigation, route }: Props) {
                       <Text style={styles.stepMeta}>
                         {esDone
                           ? `Completada · ${formatearFecha(p.fechaCompletada)}`
-                          : esActive
-                            ? `Programada · ${formatearFecha(p.fechaProgramada)}`
-                            : 'Esperando revisión anterior'}
+                          : p.estado === 'EnProceso'
+                            ? 'En proceso — orden activa en taller'
+                            : esActive
+                              ? `Programada · ${formatearFecha(p.fechaProgramada)}`
+                              : 'Esperando revisión anterior'}
                       </Text>
                     </View>
 
                     {/* Acción lateral */}
-                    {esActive && (
+                    {puedeRegistrar(p) && (
                       <TouchableOpacity
                         style={styles.stepCta}
                         activeOpacity={0.85}
@@ -271,6 +298,12 @@ export default function VehiculoScreen({ navigation, route }: Props) {
                         <Text style={styles.stepCtaText}>Registrar</Text>
                         <Ionicons name="arrow-forward" size={12} color={COLORS.textDark} />
                       </TouchableOpacity>
+                    )}
+                    {p.estado === 'EnProceso' && (
+                      <View style={styles.stepInProgress}>
+                        <Ionicons name="time-outline" size={12} color={COLORS.orange} />
+                        <Text style={styles.stepInProgressText}>En taller</Text>
+                      </View>
                     )}
                     {esDone && (
                       <Text style={styles.stepDoneHint}>Ver</Text>
@@ -608,6 +641,22 @@ const styles = StyleSheet.create({
     color: COLORS.green,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  stepInProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.orangeSoft,
+    borderWidth: 1,
+    borderColor: COLORS.orange,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  stepInProgressText: {
+    fontSize: 11,
+    color: COLORS.orange,
+    fontWeight: '700',
   },
 
   // Botón dashed "Nuevo plan"

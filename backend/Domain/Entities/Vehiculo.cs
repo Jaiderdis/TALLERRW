@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
 namespace Domain.Entities
@@ -25,5 +26,9 @@ namespace Domain.Entities
         // Navegación
         public ICollection<OrdenServicio> Ordenes { get; set; } = [];
         public ICollection<PlanRevision> PlanesRevision { get; set; } = [];
+
+        // Calculados en consultas de resumen — no persisten en BD
+        [NotMapped] public int TotalOrdenes { get; set; }
+        [NotMapped] public DateTime? UltimaOrdenFecha { get; set; }
     }
 }

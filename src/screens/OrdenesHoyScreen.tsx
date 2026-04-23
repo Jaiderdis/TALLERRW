@@ -157,16 +157,27 @@ export default function OrdenesHoyScreen({ navigation }: Props) {
             <StatTiles filter={filter} counts={counts} onPick={setFilter} />
           </View>
         }
-        renderItem={({ item }: ListRenderItemInfo<Orden>) => (
-          <OrdenCard
-            orden={item}
-            onDetalle={() => {
-              // TODO: navegar a detalle de orden si existe la ruta
-              navigation.navigate('Vehiculo', { vehiculo: item.vehiculo });
-            }}
-            onCambiarEstado={() => cambiarEstado(item)}
-          />
-        )}
+        renderItem={({ item }: ListRenderItemInfo<Orden>) => {
+          const accionRevision = () => {
+            if (item.estado === 'EnProceso' && item.planRevisionId) {
+              navigation.navigate('FichaRevision', {
+                planId: item.planRevisionId,
+                ordenId: item.id,
+                vehiculoId: item.vehiculo.id,
+                tecnicoId: item.tecnico.id,
+              });
+            } else {
+              cambiarEstado(item);
+            }
+          };
+          return (
+            <OrdenCard
+              orden={item}
+              onDetalle={() => navigation.navigate('OrdenDetalle', { orden: item })}
+              onCambiarEstado={item.esRevision ? accionRevision : () => cambiarEstado(item)}
+            />
+          );
+        }}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={<EmptyState filter={filter} />}
         showsVerticalScrollIndicator={false}
@@ -245,34 +256,96 @@ function OrdenCard({ orden, onDetalle, onCambiarEstado }: OrdenCardProps) {
   const isCancelled = statusKey === 'cancelada';
   const prio = mapPriority(orden.prioridad);
   const actionLabel = NEXT_ACTION[orden.estado] ?? null;
+  const idLabel = `#${String(orden.id).padStart(4, '0')}`;
 
-  // Soft glow para el borde lateral en proceso
   const cardDynamic = {
-    borderLeftColor: s.color,
+    borderLeftColor: orden.esRevision ? COLORS.blue : s.color,
     opacity: isCompleted ? 0.78 : isCancelled ? 0.6 : 1,
   };
 
-  // TODO: el backend aún no expone el "motivo" como campo separado.
-  // Usamos observaciones como fallback visual.
+  if (orden.esRevision) {
+    return (
+      <View style={[styles.revCard, { opacity: isCompleted ? 0.78 : 1 }]}>
+        {/* Franja superior sutil */}
+        <View style={styles.revStripe}>
+          <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.blue} />
+          <Text style={styles.revStripeTitle}>REVISIÓN DE GARANTÍA</Text>
+          <View style={{ flex: 1 }} />
+          {/* Pill propio con fondo oscuro para que se vea sobre cualquier fondo */}
+          <View style={[styles.revStatePill, { borderColor: s.color }]}>
+            <View style={[styles.revStateDot, { backgroundColor: s.color }]} />
+            <Text style={[styles.revStateText, { color: s.color }]}>{s.label}</Text>
+          </View>
+        </View>
+
+        {/* Cuerpo */}
+        <View style={styles.revBody}>
+          <View style={styles.revTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.revPlate}>{orden.vehiculo.placa}</Text>
+              <Text style={styles.revVehiculo} numberOfLines={1}>
+                {orden.vehiculo.marca} {orden.vehiculo.modelo} {orden.vehiculo.anio}
+              </Text>
+            </View>
+            <View style={styles.revHoraCol}>
+              <Text style={styles.revHora}>{formatHour(orden.fechaIngreso)}</Text>
+              <Text style={styles.revId}>{idLabel}</Text>
+            </View>
+          </View>
+
+          <View style={styles.revMeta}>
+            <View style={styles.metaItem}>
+              <Ionicons name="person-outline" size={13} color={COLORS.textMuted} />
+              <Text style={styles.metaText} numberOfLines={1}>{orden.cliente?.nombre ?? '—'}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="build" size={13} color={COLORS.textMuted} />
+              <Text style={styles.metaText} numberOfLines={1}>{orden.tecnico?.nombre ?? '—'}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="speedometer-outline" size={13} color={COLORS.textMuted} />
+              <Text style={[styles.metaText, styles.mono]}>{orden.kmIngreso?.toLocaleString('es-CO') ?? 0} km</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={onDetalle} activeOpacity={0.75}>
+              <Ionicons name="eye-outline" size={15} color={COLORS.text} />
+              <Text style={styles.btnGhostText}>Ver detalle</Text>
+            </TouchableOpacity>
+            {actionLabel ? (
+              <TouchableOpacity style={[styles.btn, styles.btnRevision]} onPress={onCambiarEstado} activeOpacity={0.85}>
+                <Ionicons
+                  name={orden.estado === 'EnProceso' ? 'document-text-outline' : 'play-outline'}
+                  size={15} color={COLORS.black}
+                />
+                <Text style={styles.btnPrimaryText}>
+                  {orden.estado === 'EnEspera' ? 'Iniciar revisión' : 'Llenar ficha'}
+                </Text>
+              </TouchableOpacity>
+            ) : isCompleted ? (
+              <View style={[styles.btn, styles.btnCompleted]}>
+                <Ionicons name="checkmark-done" size={15} color={COLORS.green} />
+                <Text style={styles.btnCompletedText}>Completada</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Orden normal ──────────────────────────────────────────────────────────────
   const motivo = orden.observaciones?.trim() || null;
 
-  // TODO: el backend no expone id alfanumérico tipo "A0002".
-  // Formateamos el id numérico con prefijo visual.
-  const idLabel = `#${String(orden.id).padStart(4, '0')}`;
-
   return (
-    <View style={[styles.card, cardDynamic]}>
-      {/* Header row: tiempo + ID | info | pill + prioridad */}
+    <View style={[styles.card, { borderLeftColor: s.color, opacity: isCompleted ? 0.78 : isCancelled ? 0.6 : 1 }]}>
       <View style={styles.cardHead}>
-        {/* Hora + ID */}
         <View style={styles.timeCol}>
-          <Text style={[styles.timeText, { color: s.color }]}>
-            {formatHour(orden.fechaIngreso)}
-          </Text>
+          <Text style={[styles.timeText, { color: s.color }]}>{formatHour(orden.fechaIngreso)}</Text>
           <Text style={styles.idText}>{idLabel}</Text>
         </View>
 
-        {/* Info principal */}
         <View style={styles.infoCol}>
           <View style={styles.titleRow}>
             <Text style={styles.plate}>{orden.vehiculo.placa}</Text>
@@ -280,85 +353,59 @@ function OrdenCard({ orden, onDetalle, onCambiarEstado }: OrdenCardProps) {
               {orden.vehiculo.marca} {orden.vehiculo.modelo} {orden.vehiculo.anio}
             </Text>
           </View>
-
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Ionicons name="person-outline" size={13} color={COLORS.textMuted} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {orden.cliente?.nombre ?? '—'}
-              </Text>
+              <Text style={styles.metaText} numberOfLines={1}>{orden.cliente?.nombre ?? '—'}</Text>
             </View>
             <View style={styles.metaItem}>
               <MaterialIcons name="build" size={13} color={COLORS.textMuted} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {orden.tecnico?.nombre ?? 'Sin técnico'}
-              </Text>
+              <Text style={styles.metaText} numberOfLines={1}>{orden.tecnico?.nombre ?? 'Sin técnico'}</Text>
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="flag-outline" size={13} color={COLORS.textMuted} />
-              <Text style={[styles.metaText, styles.mono]}>
-                {orden.kmIngreso?.toLocaleString('es-CO') ?? 0} km
-              </Text>
+              <Text style={[styles.metaText, styles.mono]}>{orden.kmIngreso?.toLocaleString('es-CO') ?? 0} km</Text>
             </View>
           </View>
-
-          {motivo ? (
-            <Text style={styles.motivo} numberOfLines={2}>
-              “{motivo}”
-            </Text>
-          ) : null}
+          {motivo ? <Text style={styles.motivo} numberOfLines={2}>"{motivo}"</Text> : null}
         </View>
 
-        {/* Estado + prioridad */}
         <View style={styles.rightCol}>
           <StatusPill label={s.label} color={s.color} />
           <PriorityBadge priority={prio} style={{ marginTop: 6 }} />
         </View>
       </View>
 
-      {/* Chips de servicios */}
       {orden.detalles && orden.detalles.length > 0 ? (
         <View style={styles.serviciosWrap}>
           {orden.detalles.map((d) => (
             <View key={d.id} style={styles.chip}>
               <View style={[styles.chipDot, { backgroundColor: s.color }]} />
-              <Text style={styles.chipText} numberOfLines={1}>
-                {d.servicio}
-              </Text>
+              <Text style={styles.chipText} numberOfLines={1}>{d.servicio}</Text>
             </View>
           ))}
         </View>
       ) : null}
 
-      {/* Acciones */}
       <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[styles.btn, styles.btnGhost]}
-          onPress={onDetalle}
-          activeOpacity={0.75}
-        >
+        <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={onDetalle} activeOpacity={0.75}>
           <Ionicons name="eye-outline" size={15} color={COLORS.text} />
           <Text style={styles.btnGhostText}>Ver detalle</Text>
         </TouchableOpacity>
-
         {actionLabel ? (
-          <TouchableOpacity
-            style={[styles.btn, styles.btnPrimary]}
-            onPress={onCambiarEstado}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={[styles.btn, styles.btnPrimary]} onPress={onCambiarEstado} activeOpacity={0.85}>
             <Ionicons name="checkmark" size={15} color={COLORS.black} />
             <Text style={styles.btnPrimaryText}>{actionLabel}</Text>
           </TouchableOpacity>
         ) : isCompleted ? (
           <View style={[styles.btn, styles.btnCompleted]}>
             <Ionicons name="checkmark-done" size={15} color={COLORS.green} />
-            <Text style={[styles.btnCompletedText]}>Completada</Text>
+            <Text style={styles.btnCompletedText}>Completada</Text>
           </View>
         ) : (
           <View style={[styles.btn, styles.btnCancelled]}>
             <Ionicons name="close" size={15} color={COLORS.red} />
-            <Text style={[styles.btnCancelledText]}>Cancelada</Text>
+            <Text style={styles.btnCancelledText}>Cancelada</Text>
           </View>
         )}
       </View>
@@ -525,6 +572,60 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 2,
   },
+  // ── Revision card ──
+  revCard: {
+    borderRadius: 14, overflow: 'hidden',
+    borderWidth: 1, borderColor: COLORS.blue,
+    borderLeftWidth: 4,
+    backgroundColor: COLORS.bg2,
+  },
+  revStripe: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.blueSoft,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: COLORS.blue,
+  },
+  revStripeTitle: {
+    fontSize: 11, fontWeight: '800', color: COLORS.blue, letterSpacing: 1,
+  },
+  revStatePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderWidth: 1, borderRadius: 999,
+    paddingVertical: 3, paddingHorizontal: 8,
+    backgroundColor: COLORS.bg2,
+  },
+  revStateDot: {
+    width: 6, height: 6, borderRadius: 3,
+  },
+  revStateText: {
+    fontSize: 11, fontWeight: '700', letterSpacing: 0.3,
+  },
+  revBody: {
+    padding: 16, gap: 12,
+  },
+  revTopRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+  },
+  revPlate: {
+    fontFamily: 'monospace', fontSize: 22, fontWeight: '800',
+    color: COLORS.blue, letterSpacing: 1.5,
+  },
+  revVehiculo: {
+    fontSize: 13, fontWeight: '600', color: COLORS.text, marginTop: 2,
+  },
+  revHoraCol: { alignItems: 'flex-end' },
+  revHora: {
+    fontFamily: 'monospace', fontSize: 18, fontWeight: '700',
+    color: COLORS.blue, letterSpacing: -0.3,
+  },
+  revId: {
+    fontFamily: 'monospace', fontSize: 10, color: COLORS.textMuted,
+    marginTop: 2, letterSpacing: 0.5,
+  },
+  revMeta: {
+    flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 4,
+  },
+  btnRevision: { backgroundColor: COLORS.blue },
 
   // pill + prioridad
   rightCol: {

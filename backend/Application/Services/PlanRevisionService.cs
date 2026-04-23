@@ -1,5 +1,6 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
+using Application.Interfaces;
 using Application.Interfaces.Services;
 using Domain.Entities;
 using Domain.Enums;
@@ -11,13 +12,19 @@ public class PlanRevisionService : IPlanRevisionService
 {
     private readonly IPlanRevisionRepository _planRepo;
     private readonly IFichaRevisionRepository _fichaRepo;
+    private readonly IOrdenRepository _ordenRepo;
+    private readonly IUnitOfWork _uow;
 
     public PlanRevisionService(
         IPlanRevisionRepository planRepo,
-        IFichaRevisionRepository fichaRepo)
+        IFichaRevisionRepository fichaRepo,
+        IOrdenRepository ordenRepo,
+        IUnitOfWork uow)
     {
         _planRepo = planRepo;
         _fichaRepo = fichaRepo;
+        _ordenRepo = ordenRepo;
+        _uow = uow;
     }
 
     public async Task<ApiResponse<List<PlanRevisionResponse>>> ObtenerPorVehiculoAsync(int vehiculoId)
@@ -57,16 +64,26 @@ public class PlanRevisionService : IPlanRevisionService
             }).ToList()
         };
 
-        var creada = await _fichaRepo.CrearAsync(ficha);
+        _fichaRepo.Agregar(ficha);
 
-        // Marcar el plan como completado (lógica de negocio — no debe vivir en el repositorio)
         var plan = await _planRepo.ObtenerPorIdAsync(request.PlanId);
         if (plan is not null)
         {
             plan.Estado = EstadoRevision.Completada;
             plan.FechaCompletada = DateTime.UtcNow;
-            await _planRepo.ActualizarAsync(plan);
         }
+
+        // Completar automáticamente la orden de revisión asociada
+        var orden = await _ordenRepo.ObtenerPorIdAsync(request.OrdenId);
+        if (orden is not null && orden.EsRevision)
+        {
+            orden.Estado = Domain.Enums.EstadoOrden.Completada;
+            orden.FechaSalida = DateTime.UtcNow;
+        }
+
+        await _uow.SaveChangesAsync();
+
+        var creada = ficha;
 
         return ApiResponse<FichaRevisionResponse>.Ok(new FichaRevisionResponse
         {
@@ -95,6 +112,7 @@ public class PlanRevisionService : IPlanRevisionService
         FechaProgramada = p.FechaProgramada,
         FechaCompletada = p.FechaCompletada,
         TieneFicha = p.Ficha is not null,
+        OrigenCompletada = p.OrdenOrigen?.Estado == Domain.Enums.EstadoOrden.Completada,
         Ficha = p.Ficha is null ? null : new FichaRevisionResponse
         {
             Id = p.Ficha.Id,

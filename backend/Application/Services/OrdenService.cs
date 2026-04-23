@@ -60,6 +60,8 @@ public class OrdenService : IOrdenService
             Prioridad = prioridad,
             KmIngreso = request.KmIngreso,
             Observaciones = request.Observaciones,
+            EsRevision = request.EsRevision,
+            PlanRevisionId = request.PlanRevisionId,
             Detalles = servicios.Select(s => new DetalleOrden
             {
                 ServicioId = s.Id,
@@ -67,21 +69,61 @@ public class OrdenService : IOrdenService
             }).ToList()
         };
 
-        var creada = await _ordenRepo.CrearAsync(orden);
-
-        // Si algún servicio genera plan — solo si no tiene plan activo
-        var generaPlan = servicios.Any(s => s.GeneraPlanRevision);
-        if (generaPlan)
+        // Si es revisión, validar que el plan no tenga ya una orden activa y marcarlo EnProceso
+        if (request.EsRevision && request.PlanRevisionId.HasValue)
         {
-            var planesExistentes = await _planRepo.ObtenerPorVehiculoAsync(request.VehiculoId);
-            var tienePlanActivo = planesExistentes.Any(p => p.Estado == EstadoRevision.Pendiente);
+            var plan = await _planRepo.ObtenerPorIdConOrigenAsync(request.PlanRevisionId.Value);
+            if (plan is null)
+                return ApiResponse<OrdenResponse>.Fail("Plan de revisión no encontrado");
+            if (plan.Estado == EstadoRevision.EnProceso)
+                return ApiResponse<OrdenResponse>.Fail("Ya existe una revisión en proceso para este plan");
+            if (plan.Estado == EstadoRevision.Completada)
+                return ApiResponse<OrdenResponse>.Fail("Este plan de revisión ya fue completado");
 
-            if (!tienePlanActivo)
-                await _planRepo.CrearPlanCompletoAsync(request.VehiculoId, creada.Id);
-            // Si tiene plan activo simplemente no crea otro — la orden queda igual
+            // La orden de instalación debe estar completada antes de la revisión 1
+            if (plan.OrdenOrigen?.Estado != Domain.Enums.EstadoOrden.Completada)
+                return ApiResponse<OrdenResponse>.Fail("La orden de instalación aún no está completada");
+
+            // Las revisiones anteriores deben estar completadas
+            if (plan.Numero > 1)
+            {
+                var todosPlanes = await _planRepo.ObtenerPorVehiculoAsync(request.VehiculoId);
+                var anterior = todosPlanes.FirstOrDefault(p => p.Numero == plan.Numero - 1);
+                if (anterior is null || anterior.Estado != EstadoRevision.Completada)
+                    return ApiResponse<OrdenResponse>.Fail($"La revisión {plan.Numero - 1} debe estar completada primero");
+            }
+
+            var creada = await _ordenRepo.CrearAsync(orden);
+
+            plan.Estado = EstadoRevision.EnProceso;
+            await _planRepo.ActualizarAsync(plan);
+
+            // Si algún servicio genera plan — solo si no tiene plan activo
+            var generaPlan = servicios.Any(s => s.GeneraPlanRevision);
+            if (generaPlan)
+            {
+                var planesExistentes = await _planRepo.ObtenerPorVehiculoAsync(request.VehiculoId);
+                var tienePlanActivo = planesExistentes.Any(p => p.Estado == EstadoRevision.Pendiente || p.Estado == EstadoRevision.EnProceso);
+                if (!tienePlanActivo)
+                    await _planRepo.CrearPlanCompletoAsync(request.VehiculoId, creada.Id);
+            }
+
+            return ApiResponse<OrdenResponse>.Ok(MapearResponse(creada), "Orden creada exitosamente");
         }
 
-        return ApiResponse<OrdenResponse>.Ok(MapearResponse(creada), "Orden creada exitosamente");
+        var ordenCreada = await _ordenRepo.CrearAsync(orden);
+
+        // Si algún servicio genera plan — solo si no tiene plan activo
+        var generaPlanNormal = servicios.Any(s => s.GeneraPlanRevision);
+        if (generaPlanNormal)
+        {
+            var planesExistentes = await _planRepo.ObtenerPorVehiculoAsync(request.VehiculoId);
+            var tienePlanActivo = planesExistentes.Any(p => p.Estado == EstadoRevision.Pendiente || p.Estado == EstadoRevision.EnProceso);
+            if (!tienePlanActivo)
+                await _planRepo.CrearPlanCompletoAsync(request.VehiculoId, ordenCreada.Id);
+        }
+
+        return ApiResponse<OrdenResponse>.Ok(MapearResponse(ordenCreada), "Orden creada exitosamente");
     }
 
     public async Task<ApiResponse<OrdenResponse>> ObtenerPorIdAsync(int id)
@@ -123,6 +165,73 @@ public class OrdenService : IOrdenService
 
         var actualizada = await _ordenRepo.ActualizarAsync(orden);
         return ApiResponse<OrdenResponse>.Ok(MapearResponse(actualizada), "Estado actualizado");
+    }
+
+    public async Task<ApiResponse<OrdenResponse>> AgregarDetallesAsync(int id, AgregarDetallesRequest request)
+    {
+        var orden = await _ordenRepo.ObtenerPorIdAsync(id);
+        if (orden is null)
+            return ApiResponse<OrdenResponse>.Fail("Orden no encontrada");
+
+        if (orden.EsRevision)
+            return ApiResponse<OrdenResponse>.Fail("No se pueden agregar servicios a una orden de revisión");
+
+        if (orden.Estado == EstadoOrden.Completada)
+            return ApiResponse<OrdenResponse>.Fail("No se pueden agregar servicios a una orden completada");
+
+        var servicios = (await _catalogoRepo.ObtenerPorIdsAsync(request.ServiciosIds)).ToList();
+        var idsNoEncontrados = request.ServiciosIds.Except(servicios.Select(s => s.Id)).ToList();
+        if (idsNoEncontrados.Count > 0)
+            return ApiResponse<OrdenResponse>.Fail($"Servicios no encontrados: {string.Join(", ", idsNoEncontrados)}");
+
+        foreach (var servicio in servicios)
+            orden.Detalles.Add(new DetalleOrden { ServicioId = servicio.Id, Precio = servicio.PrecioBase });
+
+        await _ordenRepo.ActualizarAsync(orden);
+        return ApiResponse<OrdenResponse>.Ok(MapearResponse(orden), "Servicios agregados");
+    }
+
+    public async Task<ApiResponse<OrdenResponse>> EliminarDetalleAsync(int ordenId, int detalleId)
+    {
+        var orden = await _ordenRepo.ObtenerPorIdAsync(ordenId);
+        if (orden is null)
+            return ApiResponse<OrdenResponse>.Fail("Orden no encontrada");
+
+        if (orden.Estado == EstadoOrden.Completada)
+            return ApiResponse<OrdenResponse>.Fail("No se pueden modificar servicios de una orden completada");
+
+        // Identificar si el servicio a eliminar genera plan de revisión
+        var detalle = orden.Detalles.FirstOrDefault(d => d.Id == detalleId);
+        if (detalle is null)
+            return ApiResponse<OrdenResponse>.Fail("Servicio no encontrado en esta orden");
+
+        var servicioGeneraPlan = detalle.Servicio?.GeneraPlanRevision ?? false;
+
+        var eliminado = await _ordenRepo.EliminarDetalleAsync(ordenId, detalleId);
+        if (!eliminado)
+            return ApiResponse<OrdenResponse>.Fail("No se pudo eliminar el servicio");
+
+        // Si el servicio eliminado generaba plan, verificar si quedan otros que también lo hagan
+        if (servicioGeneraPlan)
+        {
+            var ordenActualizada = await _ordenRepo.ObtenerPorIdAsync(ordenId);
+            var quedaServicioConPlan = ordenActualizada!.Detalles
+                .Any(d => d.Servicio?.GeneraPlanRevision == true);
+
+            if (!quedaServicioConPlan)
+            {
+                // Buscar el plan originado por esta orden
+                var planes = (await _planRepo.ObtenerPorOrdenOrigenAsync(ordenId)).ToList();
+
+                // Solo eliminar si TODAS las revisiones siguen pendientes (ninguna se ha completado)
+                var todasPendientes = planes.All(p => p.Ficha is null);
+                if (planes.Count > 0 && todasPendientes)
+                    await _planRepo.EliminarPlanesAsync(planes);
+            }
+        }
+
+        var ordenFinal = await _ordenRepo.ObtenerPorIdAsync(ordenId);
+        return ApiResponse<OrdenResponse>.Ok(MapearResponse(ordenFinal!), "Servicio eliminado");
     }
 
     private static OrdenResponse MapearResponse(OrdenServicio o) => new()
@@ -169,6 +278,8 @@ public class OrdenService : IOrdenService
             Servicio = d.Servicio?.Nombre ?? string.Empty,
             Precio = d.Precio,
             Notas = d.Notas
-        }).ToList() ?? []
+        }).ToList() ?? [],
+        EsRevision = o.EsRevision,
+        PlanRevisionId = o.PlanRevisionId
     };
 }

@@ -18,6 +18,8 @@ public class OrdenResponse
     public ClienteResponse Cliente { get; set; } = null!;
     public EmpresaResponse? Empresa { get; set; }
     public List<DetalleOrdenResponse> Detalles { get; set; } = [];
+    public bool EsRevision { get; set; }
+    public int? PlanRevisionId { get; set; }
 }
 
 public class DetalleOrdenResponse

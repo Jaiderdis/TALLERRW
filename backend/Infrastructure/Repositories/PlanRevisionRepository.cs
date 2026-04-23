@@ -22,6 +22,7 @@ public class PlanRevisionRepository : IPlanRevisionRepository
                 .ThenInclude(f => f!.Componentes)
             .Include(p => p.Ficha)
                 .ThenInclude(f => f!.Tecnico)
+            .Include(p => p.OrdenOrigen)
             .Where(p => p.VehiculoId == vehiculoId)
             .OrderBy(p => p.Numero)
             .ToListAsync();
@@ -38,6 +39,13 @@ public class PlanRevisionRepository : IPlanRevisionRepository
     public async Task<PlanRevision?> ObtenerPorIdAsync(int id)
     {
         return await _context.PlanesRevision
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public async Task<PlanRevision?> ObtenerPorIdConOrigenAsync(int id)
+    {
+        return await _context.PlanesRevision
+            .Include(p => p.OrdenOrigen)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -78,7 +86,22 @@ public class PlanRevisionRepository : IPlanRevisionRepository
 
     public async Task<PlanRevision> ActualizarAsync(PlanRevision plan)
     {
+        _context.PlanesRevision.Update(plan);
         await _context.SaveChangesAsync();
         return plan;
+    }
+
+    public async Task<IEnumerable<PlanRevision>> ObtenerPorOrdenOrigenAsync(int ordenOrigenId)
+    {
+        return await _context.PlanesRevision
+            .Include(p => p.Ficha)
+            .Where(p => p.OrdenOrigenId == ordenOrigenId)
+            .ToListAsync();
+    }
+
+    public async Task EliminarPlanesAsync(IEnumerable<PlanRevision> planes)
+    {
+        _context.PlanesRevision.RemoveRange(planes);
+        await _context.SaveChangesAsync();
     }
 }

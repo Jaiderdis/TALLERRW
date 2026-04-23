@@ -22,5 +22,11 @@ namespace Application.Interfaces.Services
 
         // Cambia el estado: EnEspera → EnProceso → Completada
         Task<ApiResponse<OrdenResponse>> ActualizarEstadoAsync(int id, string estado);
+
+        // Agrega servicios a una orden existente (edición por el técnico)
+        Task<ApiResponse<OrdenResponse>> AgregarDetallesAsync(int id, AgregarDetallesRequest request);
+
+        // Elimina un servicio de una orden existente
+        Task<ApiResponse<OrdenResponse>> EliminarDetalleAsync(int ordenId, int detalleId);
     }
 }

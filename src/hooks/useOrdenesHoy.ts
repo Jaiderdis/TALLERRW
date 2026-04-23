@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Orden } from '../types';
-import { obtenerOrdenesPendientes, actualizarEstado } from '../api/ordenes';
+import { obtenerOrdenesHoy, actualizarEstado } from '../api/ordenes';
 import { llamarApi } from '../api/apiHelper';
 import { Alert } from 'react-native';
 
@@ -35,7 +35,7 @@ export function useOrdenesHoy(): UseOrdenesHoyResult {
   const [refreshing, setRefreshing] = useState(false);
 
   const cargar = useCallback(async () => {
-    const result = await llamarApi(() => obtenerOrdenesPendientes());
+    const result = await llamarApi(() => obtenerOrdenesHoy());
     if (result.success) {
       setOrdenes(result.data);
     } else {

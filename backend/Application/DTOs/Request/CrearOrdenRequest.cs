@@ -24,7 +24,9 @@ namespace Application.DTOs.Request
         [MaxLength(500)]
         public string Observaciones { get; set; } = string.Empty;
 
-        [MinLength(1, ErrorMessage = "Debe incluir al menos un servicio")]
         public List<int> ServiciosIds { get; set; } = [];
+
+        public bool EsRevision { get; set; } = false;
+        public int? PlanRevisionId { get; set; }
     }
 }

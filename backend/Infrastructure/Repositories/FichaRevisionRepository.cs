@@ -37,4 +37,6 @@ public class FichaRevisionRepository : IFichaRevisionRepository
         await _context.SaveChangesAsync();
         return ficha;
     }
+
+    public void Agregar(FichaRevision ficha) => _context.FichasRevision.Add(ficha);
 }

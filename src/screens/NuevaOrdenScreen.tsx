@@ -10,7 +10,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -207,16 +206,16 @@ export default function NuevaOrdenScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={styles.flex}>
+        <View style={styles.flex}>
             <ScrollView
               ref={scrollRef}
               style={styles.container}
               contentContainerStyle={styles.content}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              onScrollBeginDrag={Keyboard.dismiss}
             >
               {/* Header */}
               <ScreenHeader
@@ -448,6 +447,7 @@ export default function NuevaOrdenScreen({ navigation, route }: Props) {
                     placeholderTextColor={COLORS.textDim}
                     selectionColor={COLORS.blue}
                     textAlignVertical="top"
+                    onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
                   />
                 </View>
               </Section>
@@ -519,7 +519,6 @@ export default function NuevaOrdenScreen({ navigation, route }: Props) {
               </View>
             </StickyCTA>
           </View>
-        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

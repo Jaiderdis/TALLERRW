@@ -1,5 +1,6 @@
 using Dapper;
 using Domain.Entities;
+using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,7 @@ public class OrdenRepository : IOrdenRepository
         const string sql = @"
             SELECT
                 o.Id, o.Estado, o.Prioridad, o.KmIngreso, o.Observaciones,
-                o.FechaIngreso, o.FechaSalida,
+                o.FechaIngreso, o.FechaSalida, o.EsRevision, o.PlanRevisionId,
                 o.VehiculoId, o.TecnicoId, o.ClienteId, o.EmpresaId,
                 v.Id, v.Placa, v.Marca, v.Modelo, v.Anio, v.Color,
                 v.ClienteId, v.EmpresaId, v.FechaCreacion,
@@ -51,6 +52,9 @@ public class OrdenRepository : IOrdenRepository
             LEFT  JOIN Empresas e  ON e.Id = o.EmpresaId
             WHERE CAST(o.FechaIngreso AS DATE) = CAST(@Fecha AS DATE)
             ORDER BY o.FechaIngreso DESC";
+
+        if (_connection.State != System.Data.ConnectionState.Open)
+            await ((Microsoft.Data.SqlClient.SqlConnection)_connection).OpenAsync();
 
         var ordenes = await _connection.QueryAsync<OrdenServicio, Vehiculo, Tecnico, Cliente, Empresa?, OrdenServicio>(
             sql,
@@ -106,7 +110,7 @@ public class OrdenRepository : IOrdenRepository
         const string sql = @"
             SELECT
                 o.Id, o.Estado, o.Prioridad, o.KmIngreso, o.Observaciones,
-                o.FechaIngreso, o.FechaSalida,
+                o.FechaIngreso, o.FechaSalida, o.EsRevision, o.PlanRevisionId,
                 o.VehiculoId, o.TecnicoId, o.ClienteId, o.EmpresaId,
                 v.Id, v.Placa, v.Marca, v.Modelo, v.Anio, v.Color,
                 v.ClienteId, v.EmpresaId, v.FechaCreacion,
@@ -120,8 +124,13 @@ public class OrdenRepository : IOrdenRepository
             INNER JOIN Tecnicos t  ON t.Id = o.TecnicoId
             INNER JOIN Clientes c  ON c.Id = o.ClienteId
             LEFT  JOIN Empresas e  ON e.Id = o.EmpresaId
-            WHERE o.Estado IN ('EnEspera', 'EnProceso')
+            WHERE o.Estado IN @Estados
             ORDER BY o.FechaIngreso DESC";
+
+        var estados = new[] { EstadoOrden.EnEspera.ToString(), EstadoOrden.EnProceso.ToString() };
+
+        if (_connection.State != System.Data.ConnectionState.Open)
+            await ((Microsoft.Data.SqlClient.SqlConnection)_connection).OpenAsync();
 
         var ordenes = await _connection.QueryAsync<OrdenServicio, Vehiculo, Tecnico, Cliente, Empresa?, OrdenServicio>(
             sql,
@@ -133,6 +142,7 @@ public class OrdenRepository : IOrdenRepository
                 orden.Empresa = empresa;
                 return orden;
             },
+            new { Estados = estados },
             splitOn: "Id,Id,Id,Id");
 
         var ordenList = ordenes.ToList();
@@ -179,7 +189,20 @@ public class OrdenRepository : IOrdenRepository
 
     public async Task<OrdenServicio> ActualizarAsync(OrdenServicio orden)
     {
+        _context.OrdenesServicio.Update(orden);
         await _context.SaveChangesAsync();
         return orden;
+    }
+
+    public async Task<bool> EliminarDetalleAsync(int ordenId, int detalleId)
+    {
+        var detalle = await _context.DetallesOrden
+            .FirstOrDefaultAsync(d => d.Id == detalleId && d.OrdenId == ordenId);
+
+        if (detalle is null) return false;
+
+        _context.DetallesOrden.Remove(detalle);
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

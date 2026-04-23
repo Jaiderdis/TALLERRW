@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Application.Interfaces;
 using Domain.Interfaces.Repositories;
 using Infrastructure.Data;
 using Infrastructure.Repositories;
@@ -23,6 +24,9 @@ public static class InfrastructureExtensions
 
         // Registrar IDbConnection para Dapper (scoped — una conexión por request)
         services.AddScoped<IDbConnection>(_ => new SqlConnection(connectionString));
+
+        // Registrar UnitOfWork
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Registrar repositorios
         services.AddScoped<IVehiculoRepository, VehiculoRepository>();

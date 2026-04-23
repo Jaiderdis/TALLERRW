@@ -49,4 +49,18 @@ public class OrdenesController : ControllerBase
         var result = await _ordenService.ActualizarEstadoAsync(id, request.Estado);
         return result.Success ? Ok(result) : BadRequest(result);
     }
+
+    [HttpPost("{id}/detalles")]
+    public async Task<IActionResult> AgregarDetalles(int id, [FromBody] AgregarDetallesRequest request)
+    {
+        var result = await _ordenService.AgregarDetallesAsync(id, request);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpDelete("{id}/detalles/{detalleId}")]
+    public async Task<IActionResult> EliminarDetalle(int id, int detalleId)
+    {
+        var result = await _ordenService.EliminarDetalleAsync(id, detalleId);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
 }

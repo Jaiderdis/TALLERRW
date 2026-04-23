@@ -31,6 +31,8 @@ export interface CrearOrdenRequest {
   kmIngreso: number;
   observaciones: string;
   serviciosIds: number[];
+  esRevision?: boolean;
+  planRevisionId?: number | null;
 }
 
 export interface RegistrarFichaRequest {
@@ -88,6 +90,7 @@ export interface PlanRevision {
   fechaProgramada: string | null;
   fechaCompletada: string | null;
   tieneFicha: boolean;
+  origenCompletada: boolean;
   ficha?: FichaRevision;
 }
 
@@ -144,6 +147,8 @@ export interface Orden {
   cliente: Cliente;
   empresa?: Empresa;
   detalles: DetalleOrden[];
+  esRevision: boolean;
+  planRevisionId: number | null;
 }
 
 export interface CatalogoServicio {
