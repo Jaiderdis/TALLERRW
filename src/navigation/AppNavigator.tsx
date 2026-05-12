@@ -9,6 +9,7 @@ import FichaRevisionScreen from '../screens/FichaRevisionScreen';
 import OrdenesHoyScreen from '../screens/OrdenesHoyScreen';
 import IniciarRevisionScreen from '../screens/IniciarRevisionScreen';
 import OrdenDetalleScreen from '../screens/OrdenDetalleScreen';
+import HistorialOrdenesScreen from '../screens/HistorialOrdenesScreen';
 import { Vehiculo, Orden } from '../types';
 
 export type RootStackParamList = {
@@ -20,6 +21,7 @@ export type RootStackParamList = {
     OrdenesHoy: undefined;
     IniciarRevision: { planId: number; vehiculo: Vehiculo };
     OrdenDetalle: { orden: Orden };
+    Historial: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -74,6 +76,11 @@ export default function AppNavigator() {
                 <Stack.Screen
                     name="OrdenDetalle"
                     component={OrdenDetalleScreen}
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="Historial"
+                    component={HistorialOrdenesScreen}
                     options={{ headerShown: false }}
                 />
             </Stack.Navigator>

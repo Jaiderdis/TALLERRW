@@ -20,6 +20,9 @@ namespace Application.Interfaces.Services
         // Órdenes pendientes (EnEspera o EnProceso) sin filtro de fecha
         Task<ApiResponse<List<OrdenResponse>>> ObtenerPendientesAsync();
 
+        // Historial de órdenes de los últimos N días (default 30)
+        Task<ApiResponse<List<OrdenResponse>>> ObtenerHistorialAsync(int dias = 30);
+
         // Cambia el estado: EnEspera → EnProceso → Completada
         Task<ApiResponse<OrdenResponse>> ActualizarEstadoAsync(int id, string estado);
 

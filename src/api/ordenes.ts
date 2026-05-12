@@ -27,3 +27,7 @@ export const agregarServicios = async (id: number, serviciosIds: number[]): Prom
 export const eliminarServicio = async (id: number, detalleId: number): Promise<AxiosResponse<ApiResponse<Orden>>> => {
   return api.delete(`/ordenes/${id}/detalles/${detalleId}`);
 };
+
+export const obtenerHistorial = async (dias = 30): Promise<AxiosResponse<ApiResponse<Orden[]>>> => {
+  return api.get(`/ordenes/historial?dias=${dias}`);
+};

@@ -22,6 +22,13 @@ public class OrdenesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("historial")]
+    public async Task<IActionResult> ObtenerHistorial([FromQuery] int dias = 30)
+    {
+        var result = await _ordenService.ObtenerHistorialAsync(dias);
+        return Ok(result);
+    }
+
     [HttpGet("pendientes")]
     public async Task<IActionResult> ObtenerPendientes()
     {

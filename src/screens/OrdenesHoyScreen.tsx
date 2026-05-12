@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useOrdenesHoy } from '../hooks/useOrdenesHoy';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -99,9 +100,11 @@ export default function OrdenesHoyScreen({ navigation }: Props) {
   const { ordenes, loading, refreshing, cargar, onRefresh, cambiarEstado } = useOrdenesHoy();
   const [filter, setFilter] = useState<FilterKey>('todas');
 
-  useEffect(() => {
-    void cargar();
-  }, [cargar]);
+  useFocusEffect(
+    useCallback(() => {
+      void cargar();
+    }, [cargar])
+  );
 
   // Contadores por estado de diseño
   const counts = useMemo(() => {
@@ -153,6 +156,17 @@ export default function OrdenesHoyScreen({ navigation }: Props) {
               title="Ordenes del dia"
               meta={today}
               onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+              rightAction={
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Historial')}
+                  style={styles.historialBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ver historial"
+                  hitSlop={8}
+                >
+                  <Ionicons name="time-outline" size={20} color={COLORS.blue} />
+                </TouchableOpacity>
+              }
             />
             <StatTiles filter={filter} counts={counts} onPick={setFilter} />
           </View>
@@ -716,6 +730,14 @@ const styles = StyleSheet.create({
     color: COLORS.red,
     fontSize: 13,
     fontWeight: '700',
+  },
+
+  // historial btn (header action)
+  historialBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // empty

@@ -142,6 +142,12 @@ public class OrdenService : IOrdenService
         return ApiResponse<List<OrdenResponse>>.Ok(response);
     }
 
+    public async Task<ApiResponse<List<OrdenResponse>>> ObtenerHistorialAsync(int dias = 30)
+    {
+        var ordenes = await _ordenRepo.ObtenerHistorialAsync(dias);
+        return ApiResponse<List<OrdenResponse>>.Ok(ordenes.Select(MapearResponse).ToList());
+    }
+
     public async Task<ApiResponse<List<OrdenResponse>>> ObtenerPendientesAsync()
     {
         var ordenes = await _ordenRepo.ObtenerPendientesAsync();
@@ -157,6 +163,32 @@ public class OrdenService : IOrdenService
 
         if (!Enum.TryParse<EstadoOrden>(estado, true, out var nuevoEstado))
             return ApiResponse<OrdenResponse>.Fail("Estado no válido");
+
+        if (nuevoEstado == EstadoOrden.Cancelada)
+        {
+            if (orden.Estado != EstadoOrden.EnEspera && orden.Estado != EstadoOrden.EnProceso)
+                return ApiResponse<OrdenResponse>.Fail("Solo se pueden cancelar órdenes en espera o en proceso");
+
+            orden.Estado = EstadoOrden.Cancelada;
+
+            if (orden.EsRevision && orden.PlanRevisionId.HasValue)
+            {
+                // Revertir el plan de revisión a Pendiente
+                var plan = await _planRepo.ObtenerPorIdAsync(orden.PlanRevisionId.Value);
+                if (plan is not null && plan.Estado == EstadoRevision.EnProceso)
+                    plan.Estado = EstadoRevision.Pendiente;
+            }
+            else
+            {
+                // Eliminar el plan generado si ninguna revisión tiene ficha
+                var planes = (await _planRepo.ObtenerPorOrdenOrigenAsync(id)).ToList();
+                if (planes.Count > 0 && planes.All(p => p.Ficha is null))
+                    await _planRepo.EliminarPlanesAsync(planes);
+            }
+
+            var cancelada = await _ordenRepo.ActualizarAsync(orden);
+            return ApiResponse<OrdenResponse>.Ok(MapearResponse(cancelada), "Orden cancelada");
+        }
 
         orden.Estado = nuevoEstado;
 

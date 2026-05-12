@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TALLER RW — Aire Acondicionado Vehicular</title>
+<meta name="description" content="Especialistas en aire acondicionado eléctrico automotriz. Instalación, diagnóstico y mantenimiento con garantía." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ========== NAV ========== -->
+<header class="nav">
+  <div class="nav__inner">
+    <a href="#" class="nav__logo">
+      <span class="logo-mark">RW</span>
+      <span class="logo-text">TALLER<small>A/C SERVICE</small></span>
+    </a>
+    <nav class="nav__menu">
+      <a href="#servicios">Servicios</a>
+      <a href="#proceso">Proceso</a>
+      <a href="#flotas">Flotas</a>
+      <a href="#tecnologia">Tecnología</a>
+      <a href="#nosotros">Nosotros</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+    <a href="#contacto" class="nav__cta">
+      <span class="dot"></span> SOPORTE 24/7
+    </a>
+    <button class="nav__burger" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- ========== HERO ========== -->
+<section class="hero">
+  <div class="hero__bg"></div>
+  <div class="hero__overlay"></div>
+  <div class="hero__glow"></div>
+
+  <!-- Camión izquierdo -->
+  <div class="hero__truck hero__truck--left">
+    <svg viewBox="0 0 520 280" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="bodyL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2a3140"/>
+          <stop offset="1" stop-color="#0f131a"/>
+        </linearGradient>
+        <linearGradient id="cabL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3a4252"/>
+          <stop offset="1" stop-color="#1a2030"/>
+        </linearGradient>
+        <radialGradient id="headL" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#fff7d6"/>
+          <stop offset=".4" stop-color="#ffb347"/>
+          <stop offset="1" stop-color="rgba(255,106,26,0)"/>
+        </radialGradient>
+      </defs>
+      <!-- contenedor -->
+      <rect x="20" y="60" width="280" height="150" rx="8" fill="url(#bodyL)" stroke="#3a4252" stroke-width="1"/>
+      <!-- líneas contenedor -->
+      <line x1="100" y1="60" x2="100" y2="210" stroke="#1a2030" stroke-width="2"/>
+      <line x1="180" y1="60" x2="180" y2="210" stroke="#1a2030" stroke-width="2"/>
+      <line x1="260" y1="60" x2="260" y2="210" stroke="#1a2030" stroke-width="2"/>
+      <!-- A/C en techo -->
+      <rect x="120" y="35" width="100" height="28" rx="4" fill="#e7ecf3" stroke="#ff6a1a" stroke-width="2"/>
+      <text x="170" y="54" fill="#ff6a1a" font-size="14" font-weight="800" text-anchor="middle" font-family="Inter">RW A/C</text>
+      <!-- cabina -->
+      <path d="M300 90 L380 90 L420 130 L420 210 L300 210 Z" fill="url(#cabL)" stroke="#3a4252"/>
+      <!-- ventana -->
+      <path d="M310 100 L370 100 L400 130 L310 130 Z" fill="#0a0e14" opacity=".8"/>
+      <path d="M315 105 L365 105 L390 128 L315 128 Z" fill="#1a3a5a" opacity=".4"/>
+      <!-- parrilla -->
+      <rect x="395" y="155" width="25" height="35" rx="2" fill="#0a0e14"/>
+      <!-- faro -->
+      <circle cx="412" cy="145" r="8" fill="url(#headL)"/>
+      <circle cx="412" cy="145" r="4" fill="#fff7d6"/>
+      <!-- ruedas -->
+      <circle cx="80" cy="220" r="22" fill="#0a0e14" stroke="#2a3140" stroke-width="2"/>
+      <circle cx="80" cy="220" r="10" fill="#2a3140"/>
+      <circle cx="200" cy="220" r="22" fill="#0a0e14" stroke="#2a3140" stroke-width="2"/>
+      <circle cx="200" cy="220" r="10" fill="#2a3140"/>
+      <circle cx="380" cy="220" r="22" fill="#0a0e14" stroke="#2a3140" stroke-width="2"/>
+      <circle cx="380" cy="220" r="10" fill="#2a3140"/>
+      <!-- glow inferior -->
+      <ellipse cx="240" cy="260" rx="220" ry="12" fill="#ff6a1a" opacity=".15"/>
+    </svg>
+  </div>
+
+  <!-- Camión derecho -->
+  <div class="hero__truck hero__truck--right">
+    <svg viewBox="0 0 520 280" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="bodyR" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2a3140"/>
+          <stop offset="1" stop-color="#0f131a"/>
+        </linearGradient>
+        <linearGradient id="cabR" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3a4252"/>
+          <stop offset="1" stop-color="#1a2030"/>
+        </linearGradient>
+        <radialGradient id="headR" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#fff7d6"/>
+          <stop offset=".4" stop-color="#ffb347"/>
+          <stop offset="1" stop-color="rgba(255,106,26,0)"/>
+        </radialGradient>
+      </defs>
+      <!-- contenedor (espejado) -->
+      <rect x="220" y="60" width="280" height="150" rx="8" fill="url(#bodyR)" stroke="#3a4252" stroke-width="1"/>
+      <line x1="260" y1="60" x2="260" y2="210" stroke="#1a2030" stroke-width="2"/>
+      <line x1="340" y1="60" x2="340" y2="210" stroke="#1a2030" stroke-width="2"/>
+      <line x1="420" y1="60" x2="420" y2="210" stroke="#1a2030" stroke-width="2"/>
+      <!-- A/C en techo -->
+      <rect x="300" y="35" width="100" height="28" rx="4" fill="#e7ecf3" stroke="#ff6a1a" stroke-width="2"/>
+      <text x="350" y="54" fill="#ff6a1a" font-size="14" font-weight="800" text-anchor="middle" font-family="Inter">RW A/C</text>
+      <!-- cabina (espejada) -->
+      <path d="M220 90 L140 90 L100 130 L100 210 L220 210 Z" fill="url(#cabR)" stroke="#3a4252"/>
+      <path d="M210 100 L150 100 L120 130 L210 130 Z" fill="#0a0e14" opacity=".8"/>
+      <path d="M205 105 L155 105 L130 128 L205 128 Z" fill="#1a3a5a" opacity=".4"/>
+      <!-- parrilla -->
+      <rect x="100" y="155" width="25" height="35" rx="2" fill="#0a0e14"/>
+      <!-- faro -->
+      <circle cx="108" cy="145" r="8" fill="url(#headR)"/>
+      <circle cx="108" cy="145" r="4" fill="#fff7d6"/>
+      <!-- ruedas -->
+      <circle cx="140" cy="220" r="22" fill="#0a0e14" stroke="#2a3140" stroke-width="2"/>
+      <circle cx="140" cy="220" r="10" fill="#2a3140"/>
+      <circle cx="320" cy="220" r="22" fill="#0a0e14" stroke="#2a3140" stroke-width="2"/>
+      <circle cx="320" cy="220" r="10" fill="#2a3140"/>
+      <circle cx="440" cy="220" r="22" fill="#0a0e14" stroke="#2a3140" stroke-width="2"/>
+      <circle cx="440" cy="220" r="10" fill="#2a3140"/>
+      <!-- glow inferior -->
+      <ellipse cx="280" cy="260" rx="220" ry="12" fill="#ff6a1a" opacity=".15"/>
+    </svg>
+  </div>
+
+  <div class="hero__content">
+    <span class="badge">
+      <span class="badge__dot"></span> SERVICIO A/C AVANZADO PARA VEHÍCULOS
+    </span>
+    <h1 class="hero__title">
+      MANTÉN EL FRÍO. <br/>
+      <span class="grad">SIGUE RODANDO.</span>
+    </h1>
+    <p class="hero__sub">Máximo confort. Rendimiento sin compromisos.</p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat__icon">❄</div>
+        <div class="stat__num" data-count="98">0</div><span class="stat__unit">%</span>
+        <div class="stat__label">Eficiencia de enfriamiento</div>
+      </div>
+      <div class="stat">
+        <div class="stat__icon">🌡</div>
+        <div class="stat__num" data-count="22">0</div><span class="stat__unit">°C</span>
+        <div class="stat__label">Temperatura óptima</div>
+      </div>
+      <div class="stat">
+        <div class="stat__icon">✓</div>
+        <div class="stat__num" data-count="100">0</div><span class="stat__unit">%</span>
+        <div class="stat__label">Servicio garantizado</div>
+      </div>
+    </div>
+
+    <a href="#contacto" class="btn btn--primary">
+      AGENDA UN SERVICIO
+      <span class="btn__arrow">→</span>
+    </a>
+
+    <div class="trust">
+      <div class="trust__item"><span>🛠</span> Técnicos certificados</div>
+      <div class="trust__item"><span>⚡</span> Atención rápida</div>
+      <div class="trust__item"><span>★</span> Repuestos premium</div>
+      <div class="trust__item"><span>🚚</span> Soporte para flotas</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== LOGOS / PROOF ========== -->
+<section class="marquee">
+  <div class="marquee__track">
+    <span>CERPA</span><span>•</span>
+    <span>AGROMINEROS</span><span>•</span>
+    <span>FLOTAS DE TRANSPORTE</span><span>•</span>
+    <span>TAXIS</span><span>•</span>
+    <span>CAMIONES</span><span>•</span>
+    <span>BUSES</span><span>•</span>
+    <span>CERPA</span><span>•</span>
+    <span>AGROMINEROS</span><span>•</span>
+    <span>FLOTAS DE TRANSPORTE</span><span>•</span>
+    <span>TAXIS</span><span>•</span>
+    <span>CAMIONES</span><span>•</span>
+    <span>BUSES</span><span>•</span>
+  </div>
+</section>
+
+<!-- ========== SERVICIOS ========== -->
+<section class="section" id="servicios">
+  <div class="section__head reveal">
+    <span class="eyebrow">NUESTROS SERVICIOS</span>
+    <h2>Todo lo que tu A/C necesita,<br/><span class="grad">en un solo taller.</span></h2>
+    <p>Desde diagnóstico hasta instalación completa. Trabajamos con todo tipo de vehículos livianos, pesados y maquinaria especial.</p>
+  </div>
+
+  <div class="grid-3">
+    <article class="card reveal">
+      <div class="card__icon">❄</div>
+      <h3>Tipo Techo</h3>
+      <p>Equipos roof-mount para camiones, buses y maquinaria pesada. Alta capacidad y bajo consumo.</p>
+      <div class="card__foot">
+        <span class="price">Desde $3.800.000</span>
+        <a href="#contacto" class="link">Cotizar →</a>
+      </div>
+    </article>
+
+    <article class="card card--feature reveal">
+      <div class="card__badge">MÁS SOLICITADO</div>
+      <div class="card__icon">⚡</div>
+      <h3>Sistema Eléctrico</h3>
+      <p>A/C eléctrico automotriz completo. Sin afectar el motor, máxima eficiencia energética.</p>
+      <div class="card__foot">
+        <span class="price">Cotización personalizada</span>
+        <a href="#contacto" class="link">Cotizar →</a>
+      </div>
+    </article>
+
+    <article class="card reveal">
+      <div class="card__icon">🔧</div>
+      <h3>Diagnóstico & Recarga</h3>
+      <p>Detección de fugas, recarga de gas refrigerante R134a / R1234yf y mantenimiento preventivo.</p>
+      <div class="card__foot">
+        <span class="price">Desde $150.000</span>
+        <a href="#contacto" class="link">Cotizar →</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ========== FEATURE ROWS ========== -->
+<section class="section feature" id="tecnologia">
+  <div class="feature__row reveal">
+    <div class="feature__text">
+      <span class="eyebrow">TECNOLOGÍA</span>
+      <h2>Diagnóstico que <span class="grad">no falla.</span></h2>
+      <p>Equipos de última generación que detectan fugas microscópicas, presiones anómalas y fallas eléctricas que un taller común pasaría por alto.</p>
+      <ul class="checklist">
+        <li>Detección de fugas con nitrógeno</li>
+        <li>Recarga digital de refrigerante</li>
+        <li>Análisis de carga eléctrica del compresor</li>
+      </ul>
+    </div>
+    <div class="feature__visual">
+      <div class="visual-card">
+        <div class="visual-card__title">Estado del sistema</div>
+        <div class="visual-meter"><div class="visual-meter__fill" style="--p:94%"></div></div>
+        <div class="visual-grid">
+          <div><b>3.2</b><span>bar baja</span></div>
+          <div><b>14.8</b><span>bar alta</span></div>
+          <div><b>R134a</b><span>refrigerante</span></div>
+          <div><b>4.1A</b><span>compresor</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature__row feature__row--reverse reveal">
+    <div class="feature__text">
+      <span class="eyebrow">EXPERIENCIA</span>
+      <h2>Técnicos <span class="grad">certificados.</span></h2>
+      <p>5+ años especializados exclusivamente en aire acondicionado vehicular. No somos taller multiservicio — somos especialistas.</p>
+      <ul class="checklist">
+        <li>Certificación en sistemas eléctricos automotrices</li>
+        <li>Capacitación continua en nuevas tecnologías</li>
+        <li>Garantía escrita en cada servicio</li>
+      </ul>
+    </div>
+    <div class="feature__visual">
+      <div class="visual-card visual-card--dark">
+        <div class="badge badge--inline"><span class="badge__dot"></span> EQUIPO RW</div>
+        <h3 style="margin:.5rem 0 1rem">+500 vehículos atendidos</h3>
+        <div class="avatars">
+          <div class="avatar">JR</div>
+          <div class="avatar">MC</div>
+          <div class="avatar">LP</div>
+          <div class="avatar">+8</div>
+        </div>
+        <p style="opacity:.7;margin-top:1rem;font-size:.9rem">Equipo activo en taller</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== PROCESO ========== -->
+<section class="section process" id="proceso">
+  <div class="section__head reveal">
+    <span class="eyebrow">CÓMO TRABAJAMOS</span>
+    <h2>Un proceso <span class="grad">claro y rápido.</span></h2>
+  </div>
+  <div class="steps">
+    <div class="step reveal"><span class="step__num">01</span><h4>Contacto</h4><p>Agenda por WhatsApp o teléfono.</p></div>
+    <div class="step reveal"><span class="step__num">02</span><h4>Diagnóstico</h4><p>Revisión completa sin costo.</p></div>
+    <div class="step reveal"><span class="step__num">03</span><h4>Presupuesto</h4><p>Cotización transparente y por escrito.</p></div>
+    <div class="step reveal"><span class="step__num">04</span><h4>Reparación</h4><p>Trabajo técnico con repuestos premium.</p></div>
+    <div class="step reveal"><span class="step__num">05</span><h4>Entrega</h4><p>Garantía escrita y seguimiento.</p></div>
+  </div>
+</section>
+
+<!-- ========== FLOTAS ========== -->
+<section class="section fleets" id="flotas">
+  <div class="fleets__inner reveal">
+    <div>
+      <span class="eyebrow">PARA EMPRESAS</span>
+      <h2>Mantenimiento de <span class="grad">flotas completas.</span></h2>
+      <p>Empresas como CERPA y AGROMINEROS confían en nosotros para mantener operativos sus vehículos. Planes de mantenimiento programado, atención prioritaria y reportes mensuales.</p>
+      <a href="#contacto" class="btn btn--ghost">Solicitar plan empresarial →</a>
+    </div>
+    <div class="fleets__stats">
+      <div><b>500+</b><span>Vehículos atendidos</span></div>
+      <div><b>98%</b><span>Clientes satisfechos</span></div>
+      <div><b>5</b><span>Años de experiencia</span></div>
+      <div><b>24/7</b><span>Soporte para flotas</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== TESTIMONIOS ========== -->
+<section class="section" id="nosotros">
+  <div class="section__head reveal">
+    <span class="eyebrow">TESTIMONIOS</span>
+    <h2>Lo que dicen <span class="grad">nuestros clientes.</span></h2>
+  </div>
+  <div class="grid-3">
+    <blockquote class="quote reveal">
+      <p>"Le hicieron mantenimiento a toda mi flota de camiones. Profesionales y rápidos."</p>
+      <footer><b>Carlos M.</b><span>Flota de transporte</span></footer>
+    </blockquote>
+    <blockquote class="quote reveal">
+      <p>"Instalaron el A/C tipo techo en mi bus. Trabajo impecable y cumplieron tiempos."</p>
+      <footer><b>María R.</b><span>Bus intermunicipal</span></footer>
+    </blockquote>
+    <blockquote class="quote reveal">
+      <p>"El único taller que entendió la falla. Otros me cambiaban piezas sin diagnóstico."</p>
+      <footer><b>Andrés P.</b><span>Camioneta 4x4</span></footer>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ========== CTA FINAL ========== -->
+<section class="cta-final" id="contacto">
+  <div class="cta-final__inner reveal">
+    <h2>¿Tu A/C falla?<br/><span class="grad">Lo resolvemos hoy.</span></h2>
+    <p>Llámanos, escríbenos por WhatsApp o agenda una visita. Atención inmediata.</p>
+    <div class="cta-final__buttons">
+      <a href="https://wa.me/573116923996" class="btn btn--primary" target="_blank">
+        💬 WhatsApp +57 311 692 3996
+      </a>
+      <a href="tel:+573116923996" class="btn btn--ghost">📞 Llamar ahora</a>
+    </div>
+    <div class="cta-final__info">
+      <div><b>Horario</b><span>Lun–Sáb · 8:00 AM – 6:00 PM</span></div>
+      <div><b>Dirección</b><span>Tu ciudad, Colombia</span></div>
+      <div><b>Email</b><span>contacto@tallerrw.com</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__brand">
+      <a href="#" class="nav__logo">
+        <span class="logo-mark">RW</span>
+        <span class="logo-text">TALLER<small>A/C SERVICE</small></span>
+      </a>
+      <p>Especialistas en aire acondicionado vehicular desde hace más de 5 años.</p>
+    </div>
+    <div class="footer__cols">
+      <div>
+        <h5>Servicios</h5>
+        <a href="#servicios">Tipo techo</a>
+        <a href="#servicios">Sistema eléctrico</a>
+        <a href="#servicios">Diagnóstico</a>
+      </div>
+      <div>
+        <h5>Empresa</h5>
+        <a href="#nosotros">Nosotros</a>
+        <a href="#flotas">Flotas</a>
+        <a href="#contacto">Contacto</a>
+      </div>
+      <div>
+        <h5>Síguenos</h5>
+        <a href="#">Instagram</a>
+        <a href="#">Facebook</a>
+        <a href="#">WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <span>© 2026 TALLER RW. Todos los derechos reservados.</span>
+    <span>Hecho con ❄ en Colombia</span>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

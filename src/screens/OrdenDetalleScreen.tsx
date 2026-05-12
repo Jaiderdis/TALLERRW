@@ -134,6 +134,31 @@ export default function OrdenDetalleScreen({ navigation, route }: Props) {
     });
   };
 
+  const cancelarOrden = () => {
+    Alert.alert(
+      'Cancelar orden',
+      '¿Estás seguro? Esta acción no se puede deshacer. Si la orden generó un plan de revisiones, se eliminará.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            setCambiandoEstado(true);
+            const result = await llamarApi(() => actualizarEstado(orden.id, 'Cancelada'));
+            if (result.success) {
+              setOrden(result.data);
+              Toast.show({ type: 'success', text1: 'Orden cancelada' });
+            } else {
+              Toast.show({ type: 'error', text1: 'Error', text2: result.message });
+            }
+            setCambiandoEstado(false);
+          },
+        },
+      ]
+    );
+  };
+
   const cambiarEstado = () => {
     if (!nextEstado) return;
 
@@ -325,23 +350,34 @@ export default function OrdenDetalleScreen({ navigation, route }: Props) {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* Botón de cambio de estado */}
-      {nextEstado && (
+      {/* Footer con acciones */}
+      {isEditable && (
         <View style={styles.footer}>
+          {nextEstado && (
+            <TouchableOpacity
+              style={[styles.estadoBtn, cambiandoEstado && { opacity: 0.6 }]}
+              onPress={cambiarEstado}
+              disabled={cambiandoEstado}
+              activeOpacity={0.85}
+            >
+              {cambiandoEstado ? (
+                <ActivityIndicator color={COLORS.black} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={18} color={COLORS.black} />
+                  <Text style={styles.estadoBtnText}>{NEXT_LABEL[orden.estado]}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            style={[styles.estadoBtn, cambiandoEstado && { opacity: 0.6 }]}
-            onPress={cambiarEstado}
+            style={[styles.cancelarBtn, cambiandoEstado && { opacity: 0.6 }]}
+            onPress={cancelarOrden}
             disabled={cambiandoEstado}
             activeOpacity={0.85}
           >
-            {cambiandoEstado ? (
-              <ActivityIndicator color={COLORS.black} size="small" />
-            ) : (
-              <>
-                <Ionicons name="checkmark" size={18} color={COLORS.black} />
-                <Text style={styles.estadoBtnText}>{NEXT_LABEL[orden.estado]}</Text>
-              </>
-            )}
+            <Ionicons name="close-circle-outline" size={16} color={COLORS.red} />
+            <Text style={styles.cancelarBtnText}>Cancelar orden</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -419,7 +455,7 @@ const styles = StyleSheet.create({
   fichaBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.black },
 
   footer: {
-    paddingHorizontal: 16, paddingVertical: 12,
+    paddingHorizontal: 16, paddingVertical: 12, gap: 8,
     backgroundColor: COLORS.bg, borderTopWidth: 1, borderTopColor: COLORS.lineSoft,
   },
   estadoBtn: {
@@ -427,4 +463,10 @@ const styles = StyleSheet.create({
     gap: 8, paddingVertical: 15, borderRadius: 12, backgroundColor: COLORS.blue, minHeight: 52,
   },
   estadoBtnText: { color: COLORS.black, fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
+  cancelarBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1, borderColor: COLORS.red, backgroundColor: COLORS.redSoft,
+  },
+  cancelarBtnText: { color: COLORS.red, fontSize: 14, fontWeight: '700' },
 });

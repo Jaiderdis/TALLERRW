@@ -13,7 +13,10 @@
       "Bash(dotnet ef *)",
       "Bash(dotnet tool *)",
       "Bash(python3 *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(sort -t' ' -k1,2)",
+      "Bash(cp \"C:/Users/jaide/Downloads/634eafd6-92e7-48c5-b4ab-cec9e35dbf09.png\" \"C:/Users/jaide/OneDrive/Documentos/Proyectos/TallerRW/landing/assets/warehouse.png\")",
+      "Bash(cp \"C:/Users/jaide/Downloads/c0e37e5e-7986-40a4-a65b-2995d42af12f.png\" \"C:/Users/jaide/OneDrive/Documentos/Proyectos/TallerRW/landing/assets/reference.png\")"
     ]
   }
 }

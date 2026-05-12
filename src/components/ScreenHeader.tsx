@@ -10,6 +10,7 @@ interface Props {
   meta?: string;
   accent?: string;
   style?: StyleProp<ViewStyle>;
+  rightAction?: React.ReactNode;
 }
 
 /**
@@ -23,6 +24,7 @@ export default function ScreenHeader({
   meta,
   accent = COLORS.blue,
   style,
+  rightAction,
 }: Props) {
   return (
     <View style={[styles.header, style]}>
@@ -42,6 +44,7 @@ export default function ScreenHeader({
         <Text style={styles.title}>{title}</Text>
       </View>
       {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+      {rightAction ?? null}
     </View>
   );
 }
